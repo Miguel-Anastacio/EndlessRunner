@@ -10,6 +10,7 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Kismet/GameplayStatics.h"
 
 //////////////////////////////////////////////////////////////////////////
 // AEndlessRunnerCharacter
@@ -137,9 +138,13 @@ void AEndlessRunnerCharacter::SetupPlayerInputComponent(class UInputComponent* P
 		//Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AEndlessRunnerCharacter::Look);
 
+		//EnhancedInputComponent->BindAction(SidewaysJumpAction, ETriggerEvent::Started, this, &AEndlessRunnerCharacter::TouchPressed);
+		//EnhancedInputComponent->BindAction(SidewaysJumpAction, ETriggerEvent::Triggered, this, &AEndlessRunnerCharacter::T);
+		//EnhancedInputComponent->BindAction(SidewaysJumpAction, ETriggerEvent::Canceled, this, &AEndlessRunnerCharacter::TouchCanceled);
+
 		EnhancedInputComponent->BindAction(SidewaysJumpAction, ETriggerEvent::Started, this, &AEndlessRunnerCharacter::TouchPressed);
-		EnhancedInputComponent->BindAction(SidewaysJumpAction, ETriggerEvent::Triggered, this, &AEndlessRunnerCharacter::TouchReleased);
-		EnhancedInputComponent->BindAction(SidewaysJumpAction, ETriggerEvent::Canceled, this, &AEndlessRunnerCharacter::TouchCanceled);
+		EnhancedInputComponent->BindAction(SidewaysJumpAction, ETriggerEvent::Completed, this, &AEndlessRunnerCharacter::TouchReleased);
+		EnhancedInputComponent->BindAction(SidewaysJumpAction, ETriggerEvent::Canceled, this, &AEndlessRunnerCharacter::TouchReleased);
 
 	}
 
@@ -189,7 +194,7 @@ void AEndlessRunnerCharacter::Jump()
 	bPressedJump = true;
 	JumpKeyHoldTime = 0.0f;
 	if (JumpCurrentCount < JumpMaxCount)
-		LaunchCharacter(FindLaunchVelocity(), false, false);
+		LaunchCharacter(FindLaunchVelocity(0), false, false);
 	if (PlayerMovementState == WALLRUNING)
 		EndWallRun();
 }
@@ -197,22 +202,29 @@ void AEndlessRunnerCharacter::Jump()
 void AEndlessRunnerCharacter::TouchPressed(const FInputActionValue& Value)
 {
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Cyan, TEXT("TouchPressed"));
-	UE_LOG(LogTemp, Log, TEXT("TouchPressed"));
+	
+	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	bool status = false;
+	PlayerController->GetInputTouchState(ETouchIndex::Touch1, TouchPressedLocation.X, TouchPressedLocation.Y, status);
 
-
-	TouchPressedLocation = FVector2D(Value.Get<FInputActionValue::Axis2D>());
-
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("Y touch press: %f"), TouchPressedLocation.Y));
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("x touch press: %f"), TouchPressedLocation.X));
+	IsPressed = true;
+	
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("Y touch pressed: %f"), TouchPressedLocation.Y));
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("X touch pressed: %f"), TouchPressedLocation.X));
 }
 
 void AEndlessRunnerCharacter::TouchReleased(const FInputActionValue& Value)
 {
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("TouchReleased"));
-	FVector2D TouchReleasedLocation = FVector2D(Value.Get<FInputActionValue::Axis2D>());
+	
+	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	bool status = false;
+	PlayerController->GetInputTouchState(ETouchIndex::Touch1, TouchReleasedLocation.X, TouchReleasedLocation.Y, status);
 
-	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("Y touch release: %f"), TouchReleasedLocation.Y));
-	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("X touch release: %f"), TouchReleasedLocation.X));
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("Y touch release: %f"), TouchReleasedLocation.Y));
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("X touch release: %f"), TouchReleasedLocation.X));
+
+	CheckSwipe(TouchPressedLocation, TouchReleasedLocation, JumpThreshold);
 }
 
 void AEndlessRunnerCharacter::TouchCanceled(const FInputActionValue& Value)
@@ -220,14 +232,53 @@ void AEndlessRunnerCharacter::TouchCanceled(const FInputActionValue& Value)
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Touch Caneceled"));
 }
 
-void AEndlessRunnerCharacter::SidewaysJump()
+void AEndlessRunnerCharacter::SidewaysJump(float& direction)
 {
+	float maxJumpHorizontal = 10 * JumpThreshold;
+	//direction = UKismetMathLibrary::Clamp(direction, -maxJumpHorizontal, maxJumpHorizontal);
+
+	float absDirection = 0;
+	if (abs(direction) > JumpCutoff)
+	{
+		//big jump
+		absDirection = BigJump;
+	}
+	else
+	{
+		absDirection = SmallJump;
+	}
+
+	if (direction < 0)
+	{
+		direction = -absDirection;
+	}
+	else
+	{
+		direction = absDirection;
+	}
+
+
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("Dir %f"), direction));
 	bPressedJump = true;
 	JumpKeyHoldTime = 0.0f;
 	if (JumpCurrentCount < JumpMaxCount)
-		LaunchCharacter(FindLaunchVelocity(), false, false);
+		LaunchCharacter(FindLaunchVelocity(direction), false, false);
 	if (PlayerMovementState == WALLRUNING)
 		EndWallRun();
+}
+
+void AEndlessRunnerCharacter::CheckSwipe(FVector2D PressLocation, FVector2D ReleaseLocation, float SwipeThreshold)
+{
+	if (abs(ReleaseLocation.X - PressLocation.X) > SwipeThreshold)
+	{
+		//float dir = UKismetMathLibrary::Clamp(ReleaseLocation.X - PressLocation.X, -1, 1);
+		float dir = ReleaseLocation.X - PressLocation.X;
+		SidewaysJump(dir);
+	}
+	else
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("Not enough swipe %f"), ReleaseLocation.X - PressLocation.X));
+	}
 }
 
 void AEndlessRunnerCharacter::FindRunDirectionAndSide(FVector HitNormal)
@@ -273,7 +324,6 @@ void AEndlessRunnerCharacter::BeginWallRun()
 {
 	GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Blue, TEXT("Begin wall run"));
 	UCharacterMovementComponent* playerCharacterMovement = GetCharacterMovement();
-	playerCharacterMovement->GravityScale = 0.1;
 	PlayerMovementState = WALLRUNING;
 	playerCharacterMovement->AirControl = 1.0f;
 	JumpCurrentCount = 0;
@@ -311,7 +361,6 @@ void AEndlessRunnerCharacter::UpdateWallRun()
 void AEndlessRunnerCharacter::EndWallRun()
 {
 	UCharacterMovementComponent* playerCharacterMovement = GetCharacterMovement();
-	playerCharacterMovement->GravityScale = 1;
 	PlayerMovementState = DEFAULT;
 	playerCharacterMovement->AirControl = 1.0f;
 	playerCharacterMovement->MaxWalkSpeed = 700;
@@ -352,7 +401,7 @@ bool AEndlessRunnerCharacter::ShootRayToWall(FHitResult& Hit)
 	return GetWorld()->LineTraceSingleByChannel(Hit, startRay, endRay, Channel, TraceParams);
 }
 
-FVector AEndlessRunnerCharacter::FindLaunchVelocity()
+FVector AEndlessRunnerCharacter::FindLaunchVelocity(float dir)
 {
 	FVector launchDirection;
 
@@ -374,8 +423,9 @@ FVector AEndlessRunnerCharacter::FindLaunchVelocity()
 		}
 		// get a vector that points away from the wall by doing the cross product of the vector up
 		// with the direction that we are running along
-		launchDirection = UKismetMathLibrary::Cross_VectorVector(WallRunDirection, up);
-		launchDirection += FVector(0, 0, 0.4f);
+		//launchDirection = UKismetMathLibrary::Cross_VectorVector(WallRunDirection, up);
+		launchDirection = FVector(0, -dir, 0);
+		launchDirection += FVector(0, 0, 0.8f);
 
 		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Blue, TEXT("Jumping While Wall Running"));
 	}
@@ -389,7 +439,7 @@ FVector AEndlessRunnerCharacter::FindLaunchVelocity()
 
 			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Normal Jump"));
 		}
-
+		launchDirection = FVector(0, -dir, 0);
 		launchDirection += FVector(0, 0, 1.0f);
 
 
@@ -411,8 +461,8 @@ FVector AEndlessRunnerCharacter::FindLaunchVelocity()
 
 
 
-	if (GEngine)
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, FString::Printf(TEXT("Y launch direction: %f"), launchDirection.Y));
+	//if (GEngine)
+		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, FString::Printf(TEXT("Y launch direction: %f"), launchDirection.Y));
 
 	//UE_LOG(LogTemp, Warning, TEXT("%f"), launchDirection.Z);
 	return launchDirection * GetCharacterMovement()->JumpZVelocity;

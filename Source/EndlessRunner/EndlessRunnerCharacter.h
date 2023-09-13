@@ -60,12 +60,15 @@ public:
 	
 
 protected:
+	bool IsPressed = false;
+
+
 	//UPROPERTY(BlueprintReadOnly, Category = State, meta = (AllowPrivateAccess = "true"))
 	MovementState PlayerMovementState = DEFAULT;
 
 	//UPROPERTY(BlueprintReadOnly, Category = State, meta = (AllowPrivateAccess = "true"))
 	WallSide WallPositionRelativeToPlayer = RIGHT;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	FVector WallRunDirection = FVector(0, 0, 0);
 
 	/** Called for movement input */
@@ -78,11 +81,23 @@ protected:
 
 	// mobile input
 	FVector2D TouchPressedLocation;
-
+	FVector2D TouchReleasedLocation;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = JumpSettings, meta = (AllowPrivateAccess = "true"))
+		float JumpThreshold = 20.f;
+	// a swipe with a length over this value is a big jump
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = JumpSettings, meta = (AllowPrivateAccess = "true"))
+		float JumpCutoff = 200.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = JumpSettings, meta = (AllowPrivateAccess = "true"))
+		float BigJump = 1.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = JumpSettings, meta = (AllowPrivateAccess = "true"))
+		float SmallJump = 0.5f;
 	void TouchPressed(const FInputActionValue& Value);
 	void TouchReleased(const FInputActionValue& Value);
 	void TouchCanceled(const FInputActionValue& Value);
-	void SidewaysJump();
+	void SidewaysJump(float& direction);
+
+	// check if it is a swipe
+	void CheckSwipe(FVector2D PressLocation, FVector2D ReleaseLocation, float SwipeThreshold);
 
 
 	// wall run functions
@@ -92,7 +107,7 @@ protected:
 	void EndWallRun();
 	bool ShootRayToWall(FHitResult& Hit);
 
-	FVector FindLaunchVelocity();
+	FVector FindLaunchVelocity(float dir);
 	void ClampHorizontalVelocity();
 
 protected:
