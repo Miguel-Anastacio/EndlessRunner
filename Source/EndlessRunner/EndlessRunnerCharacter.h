@@ -51,6 +51,10 @@ class AEndlessRunnerCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	class UInputAction* LookAction;
 
+	/** Look Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	class UInputAction* SidewaysJumpAction;
+
 public:
 	AEndlessRunnerCharacter();
 	
@@ -71,7 +75,14 @@ protected:
 	void Look(const FInputActionValue& Value);
 			
 	void Jump();
-	void ResetJump();
+
+	// mobile input
+	FVector2D TouchPressedLocation;
+
+	void TouchPressed(const FInputActionValue& Value);
+	void TouchReleased(const FInputActionValue& Value);
+	void TouchCanceled(const FInputActionValue& Value);
+	void SidewaysJump();
 
 
 	// wall run functions
@@ -79,8 +90,10 @@ protected:
 	void BeginWallRun();
 	void UpdateWallRun();
 	void EndWallRun();
-
 	bool ShootRayToWall(FHitResult& Hit);
+
+	FVector FindLaunchVelocity();
+	void ClampHorizontalVelocity();
 
 protected:
 	// APawn interface

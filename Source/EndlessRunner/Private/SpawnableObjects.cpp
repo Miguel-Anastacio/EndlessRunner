@@ -26,10 +26,10 @@ void ASpawnableObjects::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 	FVector currentLocation = GetActorLocation();
 	currentLocation.X = currentLocation.X + Velocity * DeltaTime;
-	
+
 	SetActorLocation(currentLocation);
 
-
-	
+	if (currentLocation.X > 3000.0f)
+		Destroy();
 }
 

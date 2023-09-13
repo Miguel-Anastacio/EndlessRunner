@@ -7,6 +7,15 @@
 #include "GameFramework/Actor.h"
 #include "ObjectSpawner.generated.h"
 
+UENUM(BlueprintType)
+enum WallSpawn
+{
+	HORIZONTAL UMETA(DisplayName = "HORIZONTAL"),
+	WALL_RIGHT UMETA(DisplayName = "WALL RIGTH"),
+	WALL_LEFT UMETA(DisplayName = "WALL LEFT")
+};
+
+
 UCLASS()
 class ENDLESSRUNNER_API AObjectSpawner : public AActor
 {
@@ -14,17 +23,26 @@ class ENDLESSRUNNER_API AObjectSpawner : public AActor
 	
 
 protected:
+
+	UPROPERTY(EditAnywhere) USceneComponent* HorizontalTransform;
+	UPROPERTY(EditAnywhere) USceneComponent* WallRightTransform;
+	UPROPERTY(EditAnywhere) USceneComponent* WallLeftTransform;
+	WallSpawn PreviousWallSpawn = HORIZONTAL;
+	WallSpawn CurrentWallSpawn = HORIZONTAL;
+
+
 	TArray<ASpawnableObjects*> AllObjects;
 
-	UPROPERTY(EditAnywhere) TSubclassOf<class ASpawnableObjects> SpawnableObject;
+	UPROPERTY(EditAnywhere) TArray<TSubclassOf<class ASpawnableObjects>> SpawnableObject;
 
 	UPROPERTY(EditAnywhere)  float SpawnCooldown = 2.0f;
-	float timer = 10.0f;
+	float timer = 0.0f;
 
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-	void SpawnObject();
+	ASpawnableObjects* SpawnObject();
+	void SpawnWall();
 
 public:	
 	// Called every frame

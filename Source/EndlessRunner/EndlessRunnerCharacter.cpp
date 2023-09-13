@@ -76,6 +76,13 @@ void AEndlessRunnerCharacter::Tick(float deltaTime)
 {
 	Super::Tick(deltaTime);
 
+	//AddMovementInput(GetActorForwardVector(), 1.0f);
+
+	FVector currentLocation = GetActorLocation();
+	currentLocation.X = 0.0f;
+	SetActorLocation(currentLocation);
+	SetActorRotation(FQuat4d(0, 0.0f, 180.0f, 1.0f));
+
 
 	if (PlayerMovementState == WALLRUNING)
 	{
@@ -130,6 +137,10 @@ void AEndlessRunnerCharacter::SetupPlayerInputComponent(class UInputComponent* P
 		//Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AEndlessRunnerCharacter::Look);
 
+		EnhancedInputComponent->BindAction(SidewaysJumpAction, ETriggerEvent::Started, this, &AEndlessRunnerCharacter::TouchPressed);
+		EnhancedInputComponent->BindAction(SidewaysJumpAction, ETriggerEvent::Triggered, this, &AEndlessRunnerCharacter::TouchReleased);
+		EnhancedInputComponent->BindAction(SidewaysJumpAction, ETriggerEvent::Canceled, this, &AEndlessRunnerCharacter::TouchCanceled);
+
 	}
 
 }
@@ -159,6 +170,7 @@ void AEndlessRunnerCharacter::Move(const FInputActionValue& Value)
 
 void AEndlessRunnerCharacter::Look(const FInputActionValue& Value)
 {
+	/*
 	// input is a Vector2D
 	FVector2D LookAxisVector = Value.Get<FVector2D>();
 
@@ -168,6 +180,8 @@ void AEndlessRunnerCharacter::Look(const FInputActionValue& Value)
 		AddControllerYawInput(LookAxisVector.X);
 		AddControllerPitchInput(LookAxisVector.Y);
 	}
+
+	*/
 }
 
 void AEndlessRunnerCharacter::Jump()
@@ -175,7 +189,43 @@ void AEndlessRunnerCharacter::Jump()
 	bPressedJump = true;
 	JumpKeyHoldTime = 0.0f;
 	if (JumpCurrentCount < JumpMaxCount)
-		//LaunchCharacter(FindLaunchVelocity(), false, false);
+		LaunchCharacter(FindLaunchVelocity(), false, false);
+	if (PlayerMovementState == WALLRUNING)
+		EndWallRun();
+}
+
+void AEndlessRunnerCharacter::TouchPressed(const FInputActionValue& Value)
+{
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Cyan, TEXT("TouchPressed"));
+	UE_LOG(LogTemp, Log, TEXT("TouchPressed"));
+
+
+	TouchPressedLocation = FVector2D(Value.Get<FInputActionValue::Axis2D>());
+
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("Y touch press: %f"), TouchPressedLocation.Y));
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("x touch press: %f"), TouchPressedLocation.X));
+}
+
+void AEndlessRunnerCharacter::TouchReleased(const FInputActionValue& Value)
+{
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("TouchReleased"));
+	FVector2D TouchReleasedLocation = FVector2D(Value.Get<FInputActionValue::Axis2D>());
+
+	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("Y touch release: %f"), TouchReleasedLocation.Y));
+	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("X touch release: %f"), TouchReleasedLocation.X));
+}
+
+void AEndlessRunnerCharacter::TouchCanceled(const FInputActionValue& Value)
+{
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Touch Caneceled"));
+}
+
+void AEndlessRunnerCharacter::SidewaysJump()
+{
+	bPressedJump = true;
+	JumpKeyHoldTime = 0.0f;
+	if (JumpCurrentCount < JumpMaxCount)
+		LaunchCharacter(FindLaunchVelocity(), false, false);
 	if (PlayerMovementState == WALLRUNING)
 		EndWallRun();
 }
@@ -208,13 +258,15 @@ void AEndlessRunnerCharacter::FindRunDirectionAndSide(FVector HitNormal)
 	if (WallPositionRelativeToPlayer == LEFT)
 	{
 		up = FVector(0, 0, 1.0f);
-		WallRunDirection = UKismetMathLibrary::Cross_VectorVector(HitNormal, up);
+		//WallRunDirection = UKismetMathLibrary::Cross_VectorVector(HitNormal, up);
 	}
 	else if (WallPositionRelativeToPlayer == RIGHT)
 	{
 		up = FVector(0, 0, -1.0f);
-		WallRunDirection = UKismetMathLibrary::Cross_VectorVector(HitNormal, up);
+		//WallRunDirection = UKismetMathLibrary::Cross_VectorVector(HitNormal, up);
 	}
+
+	WallRunDirection = FVector(-1, 0, 0);
 }
 
 void AEndlessRunnerCharacter::BeginWallRun()
@@ -225,7 +277,7 @@ void AEndlessRunnerCharacter::BeginWallRun()
 	PlayerMovementState = WALLRUNING;
 	playerCharacterMovement->AirControl = 1.0f;
 	JumpCurrentCount = 0;
-	playerCharacterMovement->MaxWalkSpeed = 1200;
+	playerCharacterMovement->MaxWalkSpeed = 300;
 
 }
 
@@ -261,8 +313,8 @@ void AEndlessRunnerCharacter::EndWallRun()
 	UCharacterMovementComponent* playerCharacterMovement = GetCharacterMovement();
 	playerCharacterMovement->GravityScale = 1;
 	PlayerMovementState = DEFAULT;
-	playerCharacterMovement->AirControl = 0.2f;
-	playerCharacterMovement->MaxWalkSpeed = 800;
+	playerCharacterMovement->AirControl = 1.0f;
+	playerCharacterMovement->MaxWalkSpeed = 700;
 
 	GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, TEXT("End wall run"));
 }
@@ -298,6 +350,89 @@ bool AEndlessRunnerCharacter::ShootRayToWall(FHitResult& Hit)
 
 	// shoot a ray from the position of the actor to where the wall should be
 	return GetWorld()->LineTraceSingleByChannel(Hit, startRay, endRay, Channel, TraceParams);
+}
+
+FVector AEndlessRunnerCharacter::FindLaunchVelocity()
+{
+	FVector launchDirection;
+
+	// if wall running
+	// jump away from the wall
+	if (PlayerMovementState == WALLRUNING)
+	{
+		FVector up;
+		switch (WallPositionRelativeToPlayer)
+		{
+		case LEFT:
+			up = FVector(0, 0, -1.0);
+			break;
+		case RIGHT:
+			up = FVector(0, 0, 1.0);
+			break;
+		default:
+			break;
+		}
+		// get a vector that points away from the wall by doing the cross product of the vector up
+		// with the direction that we are running along
+		launchDirection = UKismetMathLibrary::Cross_VectorVector(WallRunDirection, up);
+		launchDirection += FVector(0, 0, 0.4f);
+
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Blue, TEXT("Jumping While Wall Running"));
+	}
+	else
+	{
+		if (GetCharacterMovement()->IsFalling())
+		{
+			FVector rightVector = GetActorRightVector();
+			FVector forwardVector = GetActorForwardVector();
+
+
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Normal Jump"));
+		}
+
+		launchDirection += FVector(0, 0, 1.0f);
+
+
+	}
+
+	//UE_LOG(LogTemp, Warning, TEXT("%f"), launchDirection.Z);
+	// make sure launch direction has a z component
+	if (WallPositionRelativeToPlayer == LEFT)
+	{
+		if (GEngine)
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Left"));
+	}
+	else
+	{
+		if (GEngine)
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("RIGHt"));
+	}
+	
+
+
+
+	if (GEngine)
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, FString::Printf(TEXT("Y launch direction: %f"), launchDirection.Y));
+
+	//UE_LOG(LogTemp, Warning, TEXT("%f"), launchDirection.Z);
+	return launchDirection * GetCharacterMovement()->JumpZVelocity;
+}
+
+void AEndlessRunnerCharacter::ClampHorizontalVelocity()
+{
+	UCharacterMovementComponent* PlayerCharacterMovement = GetCharacterMovement();
+	if (PlayerCharacterMovement->IsFalling())
+	{
+		FVector2D horizontalVelocity = FVector2D(PlayerCharacterMovement->Velocity.X, PlayerCharacterMovement->Velocity.Y);
+
+		float speedRatio = horizontalVelocity.Length() / (PlayerCharacterMovement->MaxWalkSpeed);
+		if (speedRatio > 1.0f)
+		{
+			horizontalVelocity = horizontalVelocity / speedRatio;
+			PlayerCharacterMovement->Velocity.X = horizontalVelocity.X;
+			PlayerCharacterMovement->Velocity.Y = horizontalVelocity.Y;
+		}
+	}
 }
 
 
