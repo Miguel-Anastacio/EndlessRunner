@@ -16,7 +16,7 @@ ASpawnableObjects::ASpawnableObjects()
 	TriggerBox = CreateDefaultSubobject<UBoxComponent>("Trigger");
 	TriggerBox->SetCollisionProfileName(TEXT("Trigger"));
 	TriggerBox->SetupAttachment(RootComponent);
-	TriggerBox->InitBoxExtent(FVector(20.0f, 20.0f, 20.0f));
+	TriggerBox->InitBoxExtent(FVector(100.0f, 50.0f, 100.0f));
 }
 
 
@@ -37,7 +37,7 @@ void ASpawnableObjects::Tick(float DeltaTime)
 
 	SetActorLocation(currentLocation);
 
-	DrawDebugBox(GetWorld(), TriggerBox->GetComponentLocation(), TriggerBox->GetScaledBoxExtent(), FColor::Purple, false, .1, 0, 5);
+	//DrawDebugBox(GetWorld(), TriggerBox->GetComponentLocation(), TriggerBox->GetScaledBoxExtent(), FColor::Purple, false, .1, 0, 5);
 
 	if (currentLocation.X > 3000.0f)
 		Destroy();

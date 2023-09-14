@@ -9,6 +9,8 @@ void AHorizontalPlatform::BeginPlay()
 
 void AHorizontalPlatform::ReactToTrigger()
 {
+	GEngine->AddOnScreenDebugMessage(-1, 0.2f, FColor::Red, TEXT("Overlap"));
+
 	/*
 	if(GetOwner() == NULL)
 	{
@@ -18,6 +20,9 @@ void AHorizontalPlatform::ReactToTrigger()
 	{
 		GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Yellow, GetOwner()->GetName());
 	}
+	*/
+	if (GetOwner() == NULL)
+		return;
 
 	AObjectSpawner* ObjectSpawner = Cast<AObjectSpawner>(GetOwner());
 	if (!HasTriggeredSpawn)
@@ -26,7 +31,7 @@ void AHorizontalPlatform::ReactToTrigger()
 		{
 			if (!ObjectSpawner->GetIsFirstWall())
 			{
-				//ObjectSpawner->SpawnWall();
+				ObjectSpawner->SpawnWall();
 				HasTriggeredSpawn = true;
 			}
 
@@ -37,8 +42,4 @@ void AHorizontalPlatform::ReactToTrigger()
 			HasTriggeredSpawn = true;
 		}
 	}
-	else
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, TEXT("Already triggered spawn"));
-	}*/
 }

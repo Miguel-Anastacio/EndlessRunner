@@ -24,9 +24,12 @@ class ENDLESSRUNNER_API AObjectSpawner : public AActor
 
 protected:
 
+	// positions for spawning walls
 	UPROPERTY(EditAnywhere) USceneComponent* HorizontalTransform;
 	UPROPERTY(EditAnywhere) USceneComponent* WallRightTransform;
 	UPROPERTY(EditAnywhere) USceneComponent* WallLeftTransform;
+
+	// keeps track of wall spawns
 	WallSpawn PreviousWallSpawn = HORIZONTAL;
 	WallSpawn CurrentWallSpawn = HORIZONTAL;
 
@@ -44,15 +47,20 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	// Spawns a wall depending on what type was decided
+
 	ASpawnableObjects* SpawnObject();
+
+	// decides whic type of wall to spawn
 	void DecideWallToSpawn();
 
 
 public:	
-	// Called every frame
 	// Sets default values for this actor's properties
 	AObjectSpawner();
+
 	virtual void Tick(float DeltaTime) override;
+
 	void SpawnWall();
 
 	bool GetIsFirstWall() {

@@ -58,7 +58,7 @@ void AObjectSpawner::DecideWallToSpawn()
 	switch (PreviousWallSpawn)
 	{
 	case HORIZONTAL:
-		CurrentWallSpawn = StaticCast<WallSpawn>(FMath::RandRange(0, 2));
+		CurrentWallSpawn = StaticCast<WallSpawn>(FMath::RandRange(1, 2));
 		break;
 	case WALL_LEFT:
 		CurrentWallSpawn = StaticCast<WallSpawn>(FMath::RandRange(0, 1));
@@ -91,7 +91,7 @@ void AObjectSpawner::Tick(float DeltaTime)
 	{
 		SpawnWall();
 		timer = 0.0f;
-		//IsFirstWall = false;
+		IsFirstWall = false;
 	}
 	timer += DeltaTime;
 	

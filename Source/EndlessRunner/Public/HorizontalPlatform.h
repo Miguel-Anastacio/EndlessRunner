@@ -17,7 +17,7 @@ class ENDLESSRUNNER_API AHorizontalPlatform : public ASpawnableObjects
 protected:
 	UPROPERTY(EditAnywhere)
 		float Length = 20.f;
-
+	UPROPERTY(EditAnywhere)
 	bool HasTriggeredSpawn = false;
 public:
 	void BeginPlay() override;
