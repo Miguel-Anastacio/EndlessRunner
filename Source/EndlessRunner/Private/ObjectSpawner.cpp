@@ -19,6 +19,7 @@ AObjectSpawner::AObjectSpawner()
 // Called when the game starts or when spawned
 void AObjectSpawner::BeginPlay()
 {
+
 	Super::BeginPlay();
 }
 
@@ -29,48 +30,56 @@ ASpawnableObjects* AObjectSpawner::SpawnObject()
 	SpawnParams.Owner = this;
 	SpawnTransform.SetRotation(FQuat4d(0,0,0,1.0f));
 	SpawnTransform.SetLocation(GetActorLocation());
-	
-	int index = FMath::RandRange(0, SpawnableObject.Num() - 1);
 
-	ASpawnableObjects* temp = GetWorld()->SpawnActor<ASpawnableObjects>(SpawnableObject[index], SpawnTransform, SpawnParams);
+	AHorizontalPlatform* temp = nullptr;
 
-	if (temp->ActorHasTag("Vertical Wall"))
+	switch (CurrentWallSpawn)
 	{
-		if (FMath::RandBool())
-		{
-			temp->SetActorLocation(WallRightTransform->GetComponentLocation());
-			CurrentWallSpawn = WALL_RIGHT;
-
-		}
-		else
-		{
-			CurrentWallSpawn = WALL_LEFT;
-			temp->SetActorLocation(WallLeftTransform->GetComponentLocation());
-		}
+	case HORIZONTAL:
+		SpawnTransform.SetLocation(HorizontalTransform->GetComponentLocation());
+		temp = GetWorld()->SpawnActor<AHorizontalPlatform>(SpawnableObject[0], SpawnTransform, SpawnParams);
+		break;
+	case WALL_LEFT:
+		SpawnTransform.SetLocation(WallLeftTransform->GetComponentLocation());
+		temp = GetWorld()->SpawnActor<AHorizontalPlatform>(SpawnableObject[1], SpawnTransform, SpawnParams);
+		break;
+	case WALL_RIGHT:
+		SpawnTransform.SetLocation(WallRightTransform->GetComponentLocation());
+		temp = GetWorld()->SpawnActor<AHorizontalPlatform>(SpawnableObject[1], SpawnTransform, SpawnParams);
+		break;
+	default:
+		break;
 	}
-	else
-	{
-		CurrentWallSpawn = HORIZONTAL;
-	}
-
 	return temp;
+}
+
+void AObjectSpawner::DecideWallToSpawn()
+{
+	switch (PreviousWallSpawn)
+	{
+	case HORIZONTAL:
+		CurrentWallSpawn = StaticCast<WallSpawn>(FMath::RandRange(0, 2));
+		break;
+	case WALL_LEFT:
+		CurrentWallSpawn = StaticCast<WallSpawn>(FMath::RandRange(0, 1));
+		break;
+	case WALL_RIGHT:
+		CurrentWallSpawn = StaticCast<WallSpawn>(FMath::RandRange(0, 2));
+		while (CurrentWallSpawn == PreviousWallSpawn)
+		{
+			CurrentWallSpawn = StaticCast<WallSpawn>(FMath::RandRange(0, 2));
+		}
+		break;
+	default:
+		break;
+	}
 }
 
 void AObjectSpawner::SpawnWall()
 {
-	ASpawnableObjects* object = SpawnObject();
-	if (CurrentWallSpawn != PreviousWallSpawn)
-	{
-		AllObjects.Add(object);
-		PreviousWallSpawn = CurrentWallSpawn;
-		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Spawned"));
-	}
-	else
-	{
-		object->Destroy();
-		SpawnWall();
-	}
+	DecideWallToSpawn();
+	AllObjects.Add(SpawnObject());
+	PreviousWallSpawn = CurrentWallSpawn;
 }
 
 // Called every frame
@@ -78,11 +87,13 @@ void AObjectSpawner::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	
-	if (timer > SpawnCooldown)
+	if (IsFirstWall && timer > SpawnCooldown)
 	{
 		SpawnWall();
 		timer = 0.0f;
+		//IsFirstWall = false;
 	}
 	timer += DeltaTime;
+	
 }
 

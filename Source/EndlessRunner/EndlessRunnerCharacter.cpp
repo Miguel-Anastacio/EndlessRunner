@@ -82,7 +82,7 @@ void AEndlessRunnerCharacter::Tick(float deltaTime)
 	FVector currentLocation = GetActorLocation();
 	currentLocation.X = 0.0f;
 	SetActorLocation(currentLocation);
-	SetActorRotation(FQuat4d(0, 0.0f, 180.0f, 1.0f));
+	SetActorRotation(FQuat4d(0.0f, XRot, 180.0f, 1.0f));
 
 
 	if (PlayerMovementState == WALLRUNING)
@@ -111,11 +111,12 @@ void AEndlessRunnerCharacter::OnCompHit(UPrimitiveComponent* HitComponent, AActo
 	// test if player is falling
 	if (GetCharacterMovement()->IsFalling())
 	{
-		if (PlayerMovementState == DEFAULT)
+		if (PlayerMovementState != WALLRUNING)
 		{
 			// find run direction and side
 			FindRunDirectionAndSide(Hit.ImpactNormal);
 			BeginWallRun();
+			
 		}
 	}
 }
@@ -197,6 +198,8 @@ void AEndlessRunnerCharacter::Jump()
 		LaunchCharacter(FindLaunchVelocity(0), false, false);
 	if (PlayerMovementState == WALLRUNING)
 		EndWallRun();
+	
+	PlayerMovementState = AIRBORNE;
 }
 
 void AEndlessRunnerCharacter::TouchPressed(const FInputActionValue& Value)
@@ -265,6 +268,8 @@ void AEndlessRunnerCharacter::SidewaysJump(float& direction)
 		LaunchCharacter(FindLaunchVelocity(direction), false, false);
 	if (PlayerMovementState == WALLRUNING)
 		EndWallRun();
+
+	PlayerMovementState = AIRBORNE;
 }
 
 void AEndlessRunnerCharacter::CheckSwipe(FVector2D PressLocation, FVector2D ReleaseLocation, float SwipeThreshold)
@@ -329,6 +334,14 @@ void AEndlessRunnerCharacter::BeginWallRun()
 	JumpCurrentCount = 0;
 	playerCharacterMovement->MaxWalkSpeed = 300;
 
+	if (WallPositionRelativeToPlayer == LEFT)
+	{
+		XRot = -30;
+	}
+	else
+	{
+		XRot = 30;
+	}
 }
 
 void AEndlessRunnerCharacter::UpdateWallRun()
@@ -351,9 +364,6 @@ void AEndlessRunnerCharacter::UpdateWallRun()
 
 	float maxSpeed = GetCharacterMovement()->GetMaxSpeed();
 	FVector playerVelocity = FVector(WallRunDirection.X * maxSpeed, WallRunDirection.Y * maxSpeed, GetCharacterMovement()->Velocity.Z * 0);
-	UE_LOG(LogTemp, Warning, TEXT("Velocity in X %f"), playerVelocity.X);
-	UE_LOG(LogTemp, Warning, TEXT("Velocity in Y %f"), playerVelocity.Y);
-	UE_LOG(LogTemp, Warning, TEXT("Velocity in Z %f"), playerVelocity.Z);
 
 	GetCharacterMovement()->Velocity = playerVelocity;
 }
@@ -361,11 +371,12 @@ void AEndlessRunnerCharacter::UpdateWallRun()
 void AEndlessRunnerCharacter::EndWallRun()
 {
 	UCharacterMovementComponent* playerCharacterMovement = GetCharacterMovement();
-	PlayerMovementState = DEFAULT;
+	PlayerMovementState = AIRBORNE;
 	playerCharacterMovement->AirControl = 1.0f;
 	playerCharacterMovement->MaxWalkSpeed = 700;
 
 	GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, TEXT("End wall run"));
+	XRot = 0;
 }
 
 bool AEndlessRunnerCharacter::ShootRayToWall(FHitResult& Hit)
@@ -401,6 +412,13 @@ bool AEndlessRunnerCharacter::ShootRayToWall(FHitResult& Hit)
 	return GetWorld()->LineTraceSingleByChannel(Hit, startRay, endRay, Channel, TraceParams);
 }
 
+void AEndlessRunnerCharacter::Landed(const FHitResult& Hit)
+{
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Blue, TEXT("Landed"));
+	Super::Landed(Hit);
+	PlayerMovementState = DEFAULT;
+}
+
 FVector AEndlessRunnerCharacter::FindLaunchVelocity(float dir)
 {
 	FVector launchDirection;
@@ -425,7 +443,10 @@ FVector AEndlessRunnerCharacter::FindLaunchVelocity(float dir)
 		// with the direction that we are running along
 		//launchDirection = UKismetMathLibrary::Cross_VectorVector(WallRunDirection, up);
 		launchDirection = FVector(0, -dir, 0);
-		launchDirection += FVector(0, 0, 0.8f);
+		if(abs(dir < 1))
+			launchDirection += FVector(0, 0, 0.8f);
+		else
+			launchDirection += FVector(0, 0, 1.0f);
 
 		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Blue, TEXT("Jumping While Wall Running"));
 	}

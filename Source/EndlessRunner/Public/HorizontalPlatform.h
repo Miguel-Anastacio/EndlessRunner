@@ -18,6 +18,8 @@ protected:
 	UPROPERTY(EditAnywhere)
 		float Length = 20.f;
 
+	bool HasTriggeredSpawn = false;
 public:
-	//void BeginPlay() override;
+	void BeginPlay() override;
+	void ReactToTrigger() override;
 };

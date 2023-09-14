@@ -12,7 +12,8 @@ UENUM(BlueprintType)
 enum MovementState
 {
 	DEFAULT UMETA(DisplayName = "DEFAULT"),
-	WALLRUNING UMETA(DisplayName = "WALLRUNNING")
+	WALLRUNING UMETA(DisplayName = "WALLRUNNING"),
+	AIRBORNE UMETA(DisplayName = "AIRBORNE")
 };
 
 UENUM(BlueprintType)
@@ -61,10 +62,13 @@ public:
 
 protected:
 	bool IsPressed = false;
+	float XRot = 0;
 
+	UPROPERTY(BlueprintReadOnly, Category = State, meta = (AllowPrivateAccess = "true"))
+	bool IsRunning = true;
 
-	//UPROPERTY(BlueprintReadOnly, Category = State, meta = (AllowPrivateAccess = "true"))
-	MovementState PlayerMovementState = DEFAULT;
+	UPROPERTY(BlueprintReadOnly, Category = State, meta = (AllowPrivateAccess = "true"))
+	TEnumAsByte<MovementState> PlayerMovementState = DEFAULT;
 
 	//UPROPERTY(BlueprintReadOnly, Category = State, meta = (AllowPrivateAccess = "true"))
 	WallSide WallPositionRelativeToPlayer = RIGHT;
@@ -106,6 +110,8 @@ protected:
 	void UpdateWallRun();
 	void EndWallRun();
 	bool ShootRayToWall(FHitResult& Hit);
+
+	void Landed(const FHitResult& Hit);
 
 	FVector FindLaunchVelocity(float dir);
 	void ClampHorizontalVelocity();

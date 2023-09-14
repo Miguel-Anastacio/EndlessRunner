@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "SpawnableObjects.h"
+#include "HorizontalPlatform.h"
 #include "GameFramework/Actor.h"
 #include "ObjectSpawner.generated.h"
 
@@ -30,10 +30,13 @@ protected:
 	WallSpawn PreviousWallSpawn = HORIZONTAL;
 	WallSpawn CurrentWallSpawn = HORIZONTAL;
 
+	// used to spawn the second wall
+	// then we use the triggers on each wall
+	bool IsFirstWall = true;
 
 	TArray<ASpawnableObjects*> AllObjects;
 
-	UPROPERTY(EditAnywhere) TArray<TSubclassOf<class ASpawnableObjects>> SpawnableObject;
+	UPROPERTY(EditAnywhere) TArray<TSubclassOf<class AHorizontalPlatform>> SpawnableObject;
 
 	UPROPERTY(EditAnywhere)  float SpawnCooldown = 2.0f;
 	float timer = 0.0f;
@@ -42,12 +45,18 @@ protected:
 	virtual void BeginPlay() override;
 
 	ASpawnableObjects* SpawnObject();
-	void SpawnWall();
+	void DecideWallToSpawn();
+
 
 public:	
 	// Called every frame
 	// Sets default values for this actor's properties
 	AObjectSpawner();
 	virtual void Tick(float DeltaTime) override;
+	void SpawnWall();
+
+	bool GetIsFirstWall() {
+		return IsFirstWall;
+	};
 
 };
