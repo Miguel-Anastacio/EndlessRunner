@@ -55,34 +55,70 @@ AEndlessRunnerCharacter::AEndlessRunnerCharacter()
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
 }
 
-void AEndlessRunnerCharacter::BeginPlay()
-{
-	// Call the base class  
-	Super::BeginPlay();
 
+void AEndlessRunnerCharacter::IncreaseScore(float amount)
+{
+	TotalScore += amount;
+}
+
+void AEndlessRunnerCharacter::SetMovementState(MovementState newState)
+{
+	if (newState == DEFAULT)
+	{
+		SetMappingContext(DefaultMappingContext);
+	}
+	else
+	{
+		SetMappingContext(AirborneMappingContext);
+	}
+
+	PlayerMovementState = newState;
+}
+
+void AEndlessRunnerCharacter::SetMappingContext(UInputMappingContext* NewMappingContext)
+{
 	//Add Input Mapping Context
 	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
 	{
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
 		{
-			Subsystem->AddMappingContext(DefaultMappingContext, 0);
+			Subsystem->ClearAllMappings();
+			Subsystem->AddMappingContext(NewMappingContext, 0);
 		}
 	}
+}
+
+void AEndlessRunnerCharacter::BeginPlay()
+{
+	// Call the base class  
+	Super::BeginPlay();
+
+	SetMappingContext(DefaultMappingContext);
 
 	// Bind function to Capsule component hit
 	GetCapsuleComponent()->OnComponentHit.AddDynamic(this, &AEndlessRunnerCharacter::OnCompHit);
+
+	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	PlayerController->bEnableMotionControls = true;
+
+
 }
 
 void AEndlessRunnerCharacter::Tick(float deltaTime)
 {
 	Super::Tick(deltaTime);
-
-	//AddMovementInput(GetActorForwardVector(), 1.0f);
-
 	FVector currentLocation = GetActorLocation();
-	currentLocation.X = 0.0f;
-	SetActorLocation(currentLocation);
-	SetActorRotation(FQuat4d(0.0f, XRot, 180.0f, 1.0f));
+
+	if (Alive)
+	{
+		currentLocation.X = 0.0f;
+		SetActorLocation(currentLocation);
+
+		RotationTimer += deltaTime * RotationSpeedMultiplier;
+		RotationTimer = FMath::Clamp(RotationTimer, 0, 1);
+		CurrentXRotation = FMath::Lerp(StartXRotation, TargetXRotation, RotationTimer);
+		SetActorRotation(FQuat4d(0.0f, CurrentXRotation, 180.0f, 1.0f));
+	}
 
 
 	if (PlayerMovementState == WALLRUNING)
@@ -99,10 +135,15 @@ void AEndlessRunnerCharacter::Tick(float deltaTime)
 			EndWallRun();
 		}
 	}
-	else
+
+	TotalScore += deltaTime;
+
+	if (currentLocation.Z < -100)
 	{
-		//GEngine->AddOnScreenDebugMessage(-1, 0.1f, FColor::Red, TEXT("Nothing"));
+		GameOverDelegate.Broadcast();
+		GetWorld()->GetFirstPlayerController()->SetPause(true);
 	}
+
 }
 
 
@@ -139,9 +180,6 @@ void AEndlessRunnerCharacter::SetupPlayerInputComponent(class UInputComponent* P
 		//Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AEndlessRunnerCharacter::Look);
 
-		//EnhancedInputComponent->BindAction(SidewaysJumpAction, ETriggerEvent::Started, this, &AEndlessRunnerCharacter::TouchPressed);
-		//EnhancedInputComponent->BindAction(SidewaysJumpAction, ETriggerEvent::Triggered, this, &AEndlessRunnerCharacter::T);
-		//EnhancedInputComponent->BindAction(SidewaysJumpAction, ETriggerEvent::Canceled, this, &AEndlessRunnerCharacter::TouchCanceled);
 
 		EnhancedInputComponent->BindAction(SidewaysJumpAction, ETriggerEvent::Started, this, &AEndlessRunnerCharacter::TouchPressed);
 		EnhancedInputComponent->BindAction(SidewaysJumpAction, ETriggerEvent::Completed, this, &AEndlessRunnerCharacter::TouchReleased);
@@ -158,7 +196,7 @@ void AEndlessRunnerCharacter::Move(const FInputActionValue& Value)
 
 	if (Controller != nullptr)
 	{
-		// find out which way is forward
+		// find out which way is forward 
 		const FRotator Rotation = Controller->GetControlRotation();
 		const FRotator YawRotation(0, Rotation.Yaw, 0);
 
@@ -171,6 +209,12 @@ void AEndlessRunnerCharacter::Move(const FInputActionValue& Value)
 		// add movement 
 		AddMovementInput(ForwardDirection, MovementVector.Y);
 		AddMovementInput(RightDirection, MovementVector.X);
+
+		APlayerController* PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+		bool status = false;
+		FVector dummy = FVector(0, 0, 0);
+		PlayerController->GetInputMotionState(Tilt, RotationRate, Gravity, dummy);
+
 	}
 }
 
@@ -195,11 +239,14 @@ void AEndlessRunnerCharacter::Jump()
 	bPressedJump = true;
 	JumpKeyHoldTime = 0.0f;
 	if (JumpCurrentCount < JumpMaxCount)
-		LaunchCharacter(FindLaunchVelocity(0), false, false);
+	{
+		FVector Jump = FVector(0, 0, 1.1) * GetCharacterMovement()->JumpZVelocity;
+		LaunchCharacter(Jump, false, false);
+	}
 	if (PlayerMovementState == WALLRUNING)
 		EndWallRun();
-	
-	PlayerMovementState = AIRBORNE;
+
+	SetMovementState(AIRBORNE);
 }
 
 void AEndlessRunnerCharacter::TouchPressed(const FInputActionValue& Value)
@@ -269,7 +316,7 @@ void AEndlessRunnerCharacter::SidewaysJump(float& direction)
 	if (PlayerMovementState == WALLRUNING)
 		EndWallRun();
 
-	PlayerMovementState = AIRBORNE;
+	SetMovementState(AIRBORNE);
 }
 
 void AEndlessRunnerCharacter::CheckSwipe(FVector2D PressLocation, FVector2D ReleaseLocation, float SwipeThreshold)
@@ -329,19 +376,21 @@ void AEndlessRunnerCharacter::BeginWallRun()
 {
 	GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Blue, TEXT("Begin wall run"));
 	UCharacterMovementComponent* playerCharacterMovement = GetCharacterMovement();
-	PlayerMovementState = WALLRUNING;
+	SetMovementState(WALLRUNING);
 	playerCharacterMovement->AirControl = 1.0f;
 	JumpCurrentCount = 0;
 	playerCharacterMovement->MaxWalkSpeed = 300;
 
 	if (WallPositionRelativeToPlayer == LEFT)
 	{
-		XRot = -30;
+		TargetXRotation = -RotationWhileWallRunning;
 	}
 	else
 	{
-		XRot = 30;
+		TargetXRotation = RotationWhileWallRunning;
 	}
+	StartXRotation = CurrentXRotation;
+	RotationTimer = 0;
 }
 
 void AEndlessRunnerCharacter::UpdateWallRun()
@@ -371,12 +420,15 @@ void AEndlessRunnerCharacter::UpdateWallRun()
 void AEndlessRunnerCharacter::EndWallRun()
 {
 	UCharacterMovementComponent* playerCharacterMovement = GetCharacterMovement();
-	PlayerMovementState = AIRBORNE;
+	SetMovementState(AIRBORNE);
 	playerCharacterMovement->AirControl = 1.0f;
 	playerCharacterMovement->MaxWalkSpeed = 700;
 
 	GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, TEXT("End wall run"));
-	XRot = 0;
+
+	TargetXRotation = 0;
+	StartXRotation = CurrentXRotation;
+	RotationTimer = 0;
 }
 
 bool AEndlessRunnerCharacter::ShootRayToWall(FHitResult& Hit)
@@ -416,7 +468,8 @@ void AEndlessRunnerCharacter::Landed(const FHitResult& Hit)
 {
 	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Blue, TEXT("Landed"));
 	Super::Landed(Hit);
-	PlayerMovementState = DEFAULT;
+	SetMovementState(DEFAULT);
+
 }
 
 FVector AEndlessRunnerCharacter::FindLaunchVelocity(float dir)
@@ -443,7 +496,7 @@ FVector AEndlessRunnerCharacter::FindLaunchVelocity(float dir)
 		// with the direction that we are running along
 		//launchDirection = UKismetMathLibrary::Cross_VectorVector(WallRunDirection, up);
 		launchDirection = FVector(0, -dir, 0);
-		if(abs(dir < 1))
+		if(abs(dir) < 1)
 			launchDirection += FVector(0, 0, 0.8f);
 		else
 			launchDirection += FVector(0, 0, 1.0f);
@@ -463,29 +516,8 @@ FVector AEndlessRunnerCharacter::FindLaunchVelocity(float dir)
 		launchDirection = FVector(0, -dir, 0);
 		launchDirection += FVector(0, 0, 1.0f);
 
-
-	}
-
-	//UE_LOG(LogTemp, Warning, TEXT("%f"), launchDirection.Z);
-	// make sure launch direction has a z component
-	if (WallPositionRelativeToPlayer == LEFT)
-	{
-		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Left"));
-	}
-	else
-	{
-		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("RIGHt"));
 	}
 	
-
-
-
-	//if (GEngine)
-		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, FString::Printf(TEXT("Y launch direction: %f"), launchDirection.Y));
-
-	//UE_LOG(LogTemp, Warning, TEXT("%f"), launchDirection.Z);
 	return launchDirection * GetCharacterMovement()->JumpZVelocity;
 }
 

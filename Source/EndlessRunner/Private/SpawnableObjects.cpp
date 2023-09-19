@@ -15,7 +15,7 @@ ASpawnableObjects::ASpawnableObjects()
 
 	TriggerBox = CreateDefaultSubobject<UBoxComponent>("Trigger");
 	TriggerBox->SetCollisionProfileName(TEXT("Trigger"));
-	TriggerBox->SetupAttachment(RootComponent);
+	TriggerBox->SetupAttachment(ObjectMesh);
 	TriggerBox->InitBoxExtent(FVector(100.0f, 50.0f, 100.0f));
 }
 
@@ -47,13 +47,16 @@ void ASpawnableObjects::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AAct
 {
 	if (OtherActor && (OtherActor != this))
 	{
-		ReactToTrigger();
-		UE_LOG(LogTemp, Warning, TEXT("Overlap"));
+		if (Cast<APawn>(OtherActor) != NULL)
+		{
+			ReactToTrigger(OtherActor);
+			UE_LOG(LogTemp, Warning, TEXT("Overlap"));
+		}
 	}
 }
 
 
-void ASpawnableObjects::ReactToTrigger()
+void ASpawnableObjects::ReactToTrigger(AActor* OtherActor)
 {
 	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Overlap Begun "));
 }

@@ -2,6 +2,7 @@
 
 #include "EndlessRunnerGameMode.h"
 #include "EndlessRunnerCharacter.h"
+#include "EndlessRunnerDebugHUD.h"
 #include "UObject/ConstructorHelpers.h"
 
 AEndlessRunnerGameMode::AEndlessRunnerGameMode()
@@ -12,4 +13,6 @@ AEndlessRunnerGameMode::AEndlessRunnerGameMode()
 	{
 		DefaultPawnClass = PlayerPawnBPClass.Class;
 	}
+
+	HUDClass = AEndlessRunnerDebugHUD::StaticClass();
 }

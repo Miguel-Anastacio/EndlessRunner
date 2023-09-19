@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "HorizontalPlatform.h"
 #include "GameFramework/Actor.h"
+#include "SpawningInterface.h"
 #include "ObjectSpawner.generated.h"
 
 UENUM(BlueprintType)
@@ -17,7 +18,7 @@ enum WallSpawn
 
 
 UCLASS()
-class ENDLESSRUNNER_API AObjectSpawner : public AActor
+class ENDLESSRUNNER_API AObjectSpawner : public AActor, public ISpawningInterface
 {
 	GENERATED_BODY()
 	
@@ -39,10 +40,25 @@ protected:
 
 	TArray<ASpawnableObjects*> AllObjects;
 
-	UPROPERTY(EditAnywhere) TArray<TSubclassOf<class AHorizontalPlatform>> SpawnableObject;
+	UPROPERTY(EditAnywhere, Category = GameObjects) 
+		TArray<TSubclassOf<class AHorizontalPlatform>> SpawnableHorizontalPlatforms;
+	UPROPERTY(EditAnywhere, Category = GameObjects)
+		TArray<TSubclassOf<class AHorizontalPlatform>> SpawnableVerticalPlatforms;
 
-	UPROPERTY(EditAnywhere)  float SpawnCooldown = 2.0f;
+	UPROPERTY(EditAnywhere, Category = GameBalance)  float SpawnCooldown = 2.0f;
 	float timer = 0.0f;
+
+	UPROPERTY(EditAnywhere, Category = GameBalance)
+		float MaxVelocity = 2000.0f;
+	UPROPERTY(EditAnywhere, Category = GameBalance)
+		float MinVelocity = 1000.0f;
+	// time(in seconds) that the player has to survive to reach max speed
+	UPROPERTY(EditAnywhere, Category = GameBalance)
+		float TimeToReachMaxSpeed = 30;
+
+
+	float CalculateVelocityOfWall();
+	//void StopGame();
 
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -54,6 +70,7 @@ protected:
 	// decides whic type of wall to spawn
 	void DecideWallToSpawn();
 
+	ASpawnableObjects* SpawnObjectOnLocation(const FVector location, TSubclassOf<class ASpawnableObjects> objectToSpawn) override;
 
 public:	
 	// Sets default values for this actor's properties

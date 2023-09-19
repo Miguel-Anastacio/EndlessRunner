@@ -16,10 +16,21 @@ AObjectSpawner::AObjectSpawner()
 	WallLeftTransform->SetupAttachment(HorizontalTransform);
 }
 
+float AObjectSpawner::CalculateVelocityOfWall()
+{
+	float aux = FMath::Clamp(timer, 0, TimeToReachMaxSpeed);
+
+	float aux_range = TimeToReachMaxSpeed - 0;
+	float range = MaxVelocity - MinVelocity;
+
+	float velocity = (aux - 0) / aux_range * range + MinVelocity;
+
+	return velocity;
+}
+
 // Called when the game starts or when spawned
 void AObjectSpawner::BeginPlay()
 {
-
 	Super::BeginPlay();
 }
 
@@ -31,25 +42,30 @@ ASpawnableObjects* AObjectSpawner::SpawnObject()
 	SpawnTransform.SetRotation(FQuat4d(0,0,0,1.0f));
 	SpawnTransform.SetLocation(GetActorLocation());
 
-	AHorizontalPlatform* temp = nullptr;
-
+	ASpawnableObjects* temp = nullptr;
+	int index = 0;
 	switch (CurrentWallSpawn)
 	{
 	case HORIZONTAL:
 		SpawnTransform.SetLocation(HorizontalTransform->GetComponentLocation());
-		temp = GetWorld()->SpawnActor<AHorizontalPlatform>(SpawnableObject[0], SpawnTransform, SpawnParams);
+		index = FMath::RandRange(0, SpawnableHorizontalPlatforms.Num() -1);
+		temp = GetWorld()->SpawnActor<AHorizontalPlatform>(SpawnableHorizontalPlatforms[index], SpawnTransform, SpawnParams);
 		break;
 	case WALL_LEFT:
 		SpawnTransform.SetLocation(WallLeftTransform->GetComponentLocation());
-		temp = GetWorld()->SpawnActor<AHorizontalPlatform>(SpawnableObject[1], SpawnTransform, SpawnParams);
+		index = FMath::RandRange(0, SpawnableVerticalPlatforms.Num() - 1);
+		temp = GetWorld()->SpawnActor<AHorizontalPlatform>(SpawnableVerticalPlatforms[1], SpawnTransform, SpawnParams);
 		break;
 	case WALL_RIGHT:
 		SpawnTransform.SetLocation(WallRightTransform->GetComponentLocation());
-		temp = GetWorld()->SpawnActor<AHorizontalPlatform>(SpawnableObject[1], SpawnTransform, SpawnParams);
+		index = FMath::RandRange(0, SpawnableVerticalPlatforms.Num() - 1);
+		temp = GetWorld()->SpawnActor<AHorizontalPlatform>(SpawnableVerticalPlatforms[0], SpawnTransform, SpawnParams);
 		break;
 	default:
 		break;
 	}
+	
+	
 	return temp;
 }
 
@@ -58,12 +74,19 @@ void AObjectSpawner::DecideWallToSpawn()
 	switch (PreviousWallSpawn)
 	{
 	case HORIZONTAL:
+		// if the player is on a horizontal platform
+		// spawn vertical walls 1 or 2 in the enum WallSpawn
 		CurrentWallSpawn = StaticCast<WallSpawn>(FMath::RandRange(1, 2));
 		break;
 	case WALL_LEFT:
+		// if the player is on a left wall
+		// spawn left vertical wall or horizontal 0 or 1 in the enum WallSpawn
 		CurrentWallSpawn = StaticCast<WallSpawn>(FMath::RandRange(0, 1));
 		break;
 	case WALL_RIGHT:
+
+		// if the player is on a right wall
+		// spawn right vertical wall or horizontal 0 or 2 in the enum WallSpawn
 		CurrentWallSpawn = StaticCast<WallSpawn>(FMath::RandRange(0, 2));
 		while (CurrentWallSpawn == PreviousWallSpawn)
 		{
@@ -75,10 +98,30 @@ void AObjectSpawner::DecideWallToSpawn()
 	}
 }
 
+ASpawnableObjects* AObjectSpawner::SpawnObjectOnLocation(const FVector location, TSubclassOf<class ASpawnableObjects> objectToSpawn)
+{
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = this;
+	FTransform SpawnTransform;
+	SpawnTransform.SetLocation(location);
+	if (objectToSpawn)
+	{
+		ASpawnableObjects* object = GetWorld()->SpawnActor<ASpawnableObjects>(objectToSpawn, SpawnTransform, SpawnParams);
+		//AllObjects.Add(object);
+		return object;
+	}
+	else
+	{
+		return NULL;
+	}
+}
+
 void AObjectSpawner::SpawnWall()
 {
 	DecideWallToSpawn();
-	AllObjects.Add(SpawnObject());
+	ASpawnableObjects* object = SpawnObject();
+	object->SetVelocity(CalculateVelocityOfWall());
+	AllObjects.Add(object);
 	PreviousWallSpawn = CurrentWallSpawn;
 }
 
@@ -90,7 +133,7 @@ void AObjectSpawner::Tick(float DeltaTime)
 	if (IsFirstWall && timer > SpawnCooldown)
 	{
 		SpawnWall();
-		timer = 0.0f;
+		//timer = 0.0f;
 		IsFirstWall = false;
 	}
 	timer += DeltaTime;
