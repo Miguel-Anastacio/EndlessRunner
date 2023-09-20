@@ -17,4 +17,5 @@ protected:
 	UPROPERTY(EditAnywhere, Category = Score)
 		float ScorePerCoin = 10.f;
 	void ReactToTrigger(AActor* OtherActor) override;
+
 };

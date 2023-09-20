@@ -207,8 +207,8 @@ void AEndlessRunnerCharacter::Move(const FInputActionValue& Value)
 		const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 
 		// add movement 
-		AddMovementInput(ForwardDirection, MovementVector.Y);
-		AddMovementInput(RightDirection, MovementVector.X);
+		AddMovementInput(ForwardDirection, MovementVector.Y * AndroidGravityMultiplier);
+		AddMovementInput(RightDirection, MovementVector.X  * AndroidGravityMultiplier);
 
 		APlayerController* PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 		bool status = false;
@@ -259,8 +259,6 @@ void AEndlessRunnerCharacter::TouchPressed(const FInputActionValue& Value)
 
 	IsPressed = true;
 	
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("Y touch pressed: %f"), TouchPressedLocation.Y));
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("X touch pressed: %f"), TouchPressedLocation.X));
 }
 
 void AEndlessRunnerCharacter::TouchReleased(const FInputActionValue& Value)
@@ -270,9 +268,6 @@ void AEndlessRunnerCharacter::TouchReleased(const FInputActionValue& Value)
 	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	bool status = false;
 	PlayerController->GetInputTouchState(ETouchIndex::Touch1, TouchReleasedLocation.X, TouchReleasedLocation.Y, status);
-
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("Y touch release: %f"), TouchReleasedLocation.Y));
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("X touch release: %f"), TouchReleasedLocation.X));
 
 	CheckSwipe(TouchPressedLocation, TouchReleasedLocation, JumpThreshold);
 }
@@ -448,6 +443,9 @@ bool AEndlessRunnerCharacter::ShootRayToWall(FHitResult& Hit)
 	default:
 		break;
 	}
+
+	startRay = startRay + -up * 20.0f;
+
 	FVector actorToWall = UKismetMathLibrary::Cross_VectorVector(WallRunDirection, up);
 	actorToWall *= 200;
 	// end position of ray
@@ -499,7 +497,7 @@ FVector AEndlessRunnerCharacter::FindLaunchVelocity(float dir)
 		if(abs(dir) < 1)
 			launchDirection += FVector(0, 0, 0.8f);
 		else
-			launchDirection += FVector(0, 0, 1.0f);
+			launchDirection += FVector(0, 0, 0.85f);
 
 		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Blue, TEXT("Jumping While Wall Running"));
 	}

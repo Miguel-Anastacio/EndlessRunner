@@ -33,8 +33,19 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = Obstacle)
 	TSubclassOf<class ASpawnableObjects> Obstacle;
+
 	UPROPERTY(EditAnywhere, Category = Obstacle)
-		USceneComponent* ObstacleSpawn;
+		TArray<USceneComponent*> ObstacleSpawn;
+
+	UPROPERTY(EditAnywhere, Category = Obstacle)
+		USceneComponent* ObstacleSpawnA;
+	UPROPERTY(EditAnywhere, Category = Obstacle)
+		USceneComponent* ObstacleSpawnB;
+	UPROPERTY(EditAnywhere, Category = Obstacle)
+		USceneComponent* ObstacleSpawnC;
+
+	UPROPERTY(EditAnywhere, Category = Obstacle)
+		int NumberOfObstacles = 0;
 
 	UPROPERTY()
 	TArray<ASpawnableObjects*> AllObjects;
@@ -46,4 +57,5 @@ public:
 	void BeginPlay() override;
 	void ReactToTrigger(AActor* OtherActor) override;
 	void SetVelocity(float speed) override;
+	void SetAudioManager(AAudioManager* audioMgr) override;
 };

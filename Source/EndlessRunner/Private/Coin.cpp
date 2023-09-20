@@ -2,6 +2,7 @@
 
 #include "Coin.h"
 #include "EndlessRunner/EndlessRunnerCharacter.h"
+#include "Components/AudioComponent.h"
 
 void ACoin::ReactToTrigger(AActor* OtherActor)
 {
@@ -9,6 +10,12 @@ void ACoin::ReactToTrigger(AActor* OtherActor)
 	if (player)
 	{
 		player->IncreaseScore(ScorePerCoin);
+		if(AudioManager)
+			AudioManager->CoinCollectedAudioComponent->Play();
+		else
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, TEXT("AudioManager is null"));
+		}
 		Destroy();
 	}
 }

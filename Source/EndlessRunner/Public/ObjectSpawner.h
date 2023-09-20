@@ -55,7 +55,8 @@ protected:
 	// time(in seconds) that the player has to survive to reach max speed
 	UPROPERTY(EditAnywhere, Category = GameBalance)
 		float TimeToReachMaxSpeed = 30;
-
+	UPROPERTY(EditAnywhere, Category = Audio)
+		AAudioManager* AudioManager;
 
 	float CalculateVelocityOfWall();
 	//void StopGame();

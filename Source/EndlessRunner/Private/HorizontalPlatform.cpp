@@ -6,9 +6,12 @@ AHorizontalPlatform::AHorizontalPlatform()
 {
 	CoinSpawn = CreateDefaultSubobject<USceneComponent>("Coin Spawn");
 	CoinSpawn->SetupAttachment(ObjectMesh);
-
-	ObstacleSpawn = CreateDefaultSubobject<USceneComponent>("Obstacle Spawn");
-	ObstacleSpawn->SetupAttachment(ObjectMesh);
+	ObstacleSpawnA = CreateDefaultSubobject<USceneComponent>("Obstacle Spawn A");
+	ObstacleSpawnB = CreateDefaultSubobject<USceneComponent>("Obstacle Spawn B");
+	ObstacleSpawnC = CreateDefaultSubobject<USceneComponent>("Obstacle Spawn C");
+	ObstacleSpawnA->SetupAttachment(ObjectMesh);
+	ObstacleSpawnB->SetupAttachment(ObjectMesh);
+	ObstacleSpawnC->SetupAttachment(ObjectMesh);
 }
 void AHorizontalPlatform::SpawnCoinsAlongPlatform(const int NumberOfCoins)
 {
@@ -45,13 +48,27 @@ ASpawnableObjects* AHorizontalPlatform::SpawnObjectOnLocation(const FVector loca
 void AHorizontalPlatform::BeginPlay()
 {
 	Super::BeginPlay();
+
 	SpawnCoinsAlongPlatform(3);
-	SpawnObjectOnLocation(ObstacleSpawn->GetComponentLocation(), Obstacle);
+
+	SetAudioManager(AudioManager);
+
+	ObstacleSpawn.Empty();
+	ObstacleSpawn.Add(ObstacleSpawnA);
+	ObstacleSpawn.Add(ObstacleSpawnB);
+	ObstacleSpawn.Add(ObstacleSpawnC);
+
+
+	for (int i = 0; i < NumberOfObstacles; i++)
+	{
+		if (ObstacleSpawn[i])
+			SpawnObjectOnLocation(ObstacleSpawn[i]->GetComponentLocation(), Obstacle);
+	}
+
 }
 
 void AHorizontalPlatform::ReactToTrigger(AActor* OtherActor)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 0.2f, FColor::Red, TEXT("Overlap"));
 
 	/*
 	if(GetOwner() == NULL)
@@ -91,5 +108,14 @@ void AHorizontalPlatform::SetVelocity(float speed)
 	for (auto it : AllObjects)
 	{
 		it->SetVelocity(speed);
+	}
+}
+
+void AHorizontalPlatform::SetAudioManager(AAudioManager* audioMgr)
+{
+	AudioManager = audioMgr;
+	for (auto it : AllObjects)
+	{
+		it->SetAudioManager(audioMgr);
 	}
 }

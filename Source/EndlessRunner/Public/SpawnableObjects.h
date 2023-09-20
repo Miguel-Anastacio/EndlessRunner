@@ -6,6 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "Components/BoxComponent.h"
 #include "DrawDebugHelpers.h"
+#include "AudioManager.h"
 #include "SpawnableObjects.generated.h"
 
 UCLASS()
@@ -26,6 +27,9 @@ protected:
 		UBoxComponent* TriggerBox;
 
 	UPROPERTY(EditAnywhere)
+		AAudioManager* AudioManager;
+
+	UPROPERTY(EditAnywhere)
 		float Velocity = 500.f;
 
 	// Called when the game starts or when spawned
@@ -42,6 +46,7 @@ public:
 	virtual void ReactToTrigger(AActor* OtherActor);
 
 	// getters and setters
+	virtual void SetAudioManager(AAudioManager* audioM) {AudioManager = audioM; };
 
 
 

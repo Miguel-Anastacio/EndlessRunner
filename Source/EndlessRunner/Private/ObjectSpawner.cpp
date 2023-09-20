@@ -14,6 +14,7 @@ AObjectSpawner::AObjectSpawner()
 	WallRightTransform->SetupAttachment(HorizontalTransform);
 	WallLeftTransform = CreateDefaultSubobject<USceneComponent>("LeftWallSpawn");
 	WallLeftTransform->SetupAttachment(HorizontalTransform);
+
 }
 
 float AObjectSpawner::CalculateVelocityOfWall()
@@ -22,8 +23,14 @@ float AObjectSpawner::CalculateVelocityOfWall()
 
 	float aux_range = TimeToReachMaxSpeed - 0;
 	float range = MaxVelocity - MinVelocity;
+	/*
+	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Green, FString::Printf(TEXT("Aux %f"), aux));
+	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Green, FString::Printf(TEXT("Aux_range %f"), aux_range));
+	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Green, FString::Printf(TEXT("Range %f"), range));
+	*/
+	float velocity = ((aux - 0) / aux_range) * range + MinVelocity;
 
-	float velocity = (aux - 0) / aux_range * range + MinVelocity;
+	//GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Green, FString::Printf(TEXT("Wall Velocity %f"), velocity));
 
 	return velocity;
 }
@@ -76,7 +83,7 @@ void AObjectSpawner::DecideWallToSpawn()
 	case HORIZONTAL:
 		// if the player is on a horizontal platform
 		// spawn vertical walls 1 or 2 in the enum WallSpawn
-		CurrentWallSpawn = StaticCast<WallSpawn>(FMath::RandRange(1, 2));
+		CurrentWallSpawn = StaticCast<WallSpawn>(FMath::RandRange(0, 2));
 		break;
 	case WALL_LEFT:
 		// if the player is on a left wall
@@ -121,6 +128,7 @@ void AObjectSpawner::SpawnWall()
 	DecideWallToSpawn();
 	ASpawnableObjects* object = SpawnObject();
 	object->SetVelocity(CalculateVelocityOfWall());
+	object->SetAudioManager(AudioManager);
 	AllObjects.Add(object);
 	PreviousWallSpawn = CurrentWallSpawn;
 }

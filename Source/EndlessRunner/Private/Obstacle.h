@@ -19,4 +19,6 @@ class AObstacle : public ASpawnableObjects
 protected:
 	UPROPERTY(EditAnywhere, Category = Score)
 		float ImpulseAppliedToPlayer = 1500.0f;
+
+	void TestCollisionDirection();
 };

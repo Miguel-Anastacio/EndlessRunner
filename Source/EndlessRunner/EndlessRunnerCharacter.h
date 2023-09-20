@@ -98,8 +98,8 @@ protected:
 	FVector RotationRate = FVector(0, 0, 0);
 
 	// multiplier of gravity phone input
-	UPROPERTY(BlueprintReadOnly, Category = Input)
-		float AndroidGravityMultiplier = 0.25f;;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input)
+		float AndroidGravityMultiplier = 2.0f;;
 
 	/** Called for movement input */
 	void Move(const FInputActionValue& Value);
@@ -176,6 +176,7 @@ public:
 	void SetMappingContext(UInputMappingContext* NewMappingContext);
 
 	void SetAlive(bool status) { Alive = status; };
+	bool GetAlive() { return Alive; };
 
 };
 
