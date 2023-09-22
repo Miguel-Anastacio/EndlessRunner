@@ -7,6 +7,7 @@
 #include "SpawningInterface.h"
 #include "HorizontalPlatform.generated.h"
 
+
 /**
  * 
  */
@@ -30,10 +31,32 @@ protected:
 		USceneComponent* CoinSpawn;
 	UPROPERTY(EditAnywhere, Category = Coin)
 		FVector SpawnOffset = FVector(100, 0, 0);
+	UPROPERTY(EditAnywhere, Category = Coin)
+		int32 MaxNumberOfCoinsPerPlatform = 5;
+	UPROPERTY(EditAnywhere, Category = Coin)
+		int32 MinNumberOfCoinsPerPlatform = 5;
+
+	UPROPERTY(EditAnywhere, Category = Coin)
+		bool UseAdaptableCoinSpawner = false;
+
+	/* values to adjust the spawn range of coins on the X axis
+	   X - minimum position adjustment
+	   Y - maximum position adjustment*/
+	UPROPERTY(EditAnywhere, Category = Coin)
+		FVector2D TweakToSpawnLocationXAxis = FVector2D(-100, 100);
+	/* values to adjust the spawn range of coins on the Y axis
+	   X - minimum position adjustment
+	   Y - maximum position adjustment*/
+	UPROPERTY(EditAnywhere, Category = Coin)
+		FVector2D TweakToSpawnLocationYAxis = FVector2D(-100, 100);
+	/* valueto fix the height of coins */
+	UPROPERTY(EditAnywhere, Category = Coin)
+		float PositionCoinsZAxis = 140.0f;
+
+
 
 	UPROPERTY(EditAnywhere, Category = Obstacle)
 	TSubclassOf<class ASpawnableObjects> Obstacle;
-
 	UPROPERTY(EditAnywhere, Category = Obstacle)
 		TArray<USceneComponent*> ObstacleSpawn;
 
@@ -47,15 +70,24 @@ protected:
 	UPROPERTY(EditAnywhere, Category = Obstacle)
 		int NumberOfObstacles = 0;
 
+
 	UPROPERTY()
 	TArray<ASpawnableObjects*> AllObjects;
 
-	void SpawnCoinsAlongPlatform(const int NumberOfCoins);
+	void SpawnCoinsAlongPlatform();
 	ASpawnableObjects* SpawnObjectOnLocation(const FVector location, TSubclassOf<class ASpawnableObjects> objectToSpawn) override;
+
+	void SpawnCoins();
+	FVector DecideCoinClusterSpawnLocation();
+	bool IsCoinOnPlatform(ASpawnableObjects* coin);
+	bool IsCoinOverlappingWithOtherObjects(ASpawnableObjects* coin);
+
+	FBox GetBoundingBoxOfActorInWorldSpace(ASpawnableObjects* object);
 
 public:
 	void BeginPlay() override;
 	void ReactToTrigger(AActor* OtherActor) override;
 	void SetVelocity(float speed) override;
 	void SetAudioManager(AAudioManager* audioMgr) override;
+
 };

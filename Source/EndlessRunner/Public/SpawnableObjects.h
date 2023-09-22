@@ -48,6 +48,8 @@ public:
 	// getters and setters
 	virtual void SetAudioManager(AAudioManager* audioM) {AudioManager = audioM; };
 
+	UStaticMeshComponent* GetObjectMesh() { return ObjectMesh; };
+
 
 
 };

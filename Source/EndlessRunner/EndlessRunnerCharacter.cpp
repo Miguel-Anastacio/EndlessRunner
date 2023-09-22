@@ -206,8 +206,11 @@ void AEndlessRunnerCharacter::Move(const FInputActionValue& Value)
 		// get right vector 
 		const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 
+		InputXAxis = MovementVector.X;
+		InputYAxis = MovementVector.Y;
+
 		// add movement 
-		AddMovementInput(ForwardDirection, MovementVector.Y * AndroidGravityMultiplier);
+		//AddMovementInput(ForwardDirection, MovementVector.Y * AndroidGravityMultiplier);
 		AddMovementInput(RightDirection, MovementVector.X  * AndroidGravityMultiplier);
 
 		APlayerController* PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
@@ -374,7 +377,6 @@ void AEndlessRunnerCharacter::BeginWallRun()
 	SetMovementState(WALLRUNING);
 	playerCharacterMovement->AirControl = 1.0f;
 	JumpCurrentCount = 0;
-	playerCharacterMovement->MaxWalkSpeed = 300;
 
 	if (WallPositionRelativeToPlayer == LEFT)
 	{
@@ -417,7 +419,6 @@ void AEndlessRunnerCharacter::EndWallRun()
 	UCharacterMovementComponent* playerCharacterMovement = GetCharacterMovement();
 	SetMovementState(AIRBORNE);
 	playerCharacterMovement->AirControl = 1.0f;
-	playerCharacterMovement->MaxWalkSpeed = 700;
 
 	GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, TEXT("End wall run"));
 

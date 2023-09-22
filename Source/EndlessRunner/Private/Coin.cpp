@@ -17,5 +17,6 @@ void ACoin::ReactToTrigger(AActor* OtherActor)
 			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, TEXT("AudioManager is null"));
 		}
 		Destroy();
+
 	}
 }

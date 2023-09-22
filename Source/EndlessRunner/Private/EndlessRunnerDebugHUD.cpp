@@ -25,6 +25,9 @@ void AEndlessRunnerDebugHUD::DrawHUD()
 		AddFloat(TEXT("velocity X:"), velocity.X);
 		AddFloat(TEXT("velocity Y:"), velocity.Y);
 		AddFloat(TEXT("velocity Z:"), velocity.Z);
+
+		AddFloat(TEXT("Input X axis:"), player->InputXAxis);
+		AddFloat(TEXT("Input Y axis:"), player->InputYAxis);
 	}
 	
 }

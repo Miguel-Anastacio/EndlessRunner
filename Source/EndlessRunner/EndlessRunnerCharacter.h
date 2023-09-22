@@ -65,6 +65,11 @@ class AEndlessRunnerCharacter : public ACharacter
 	
 
 protected:
+	// debug
+	float InputXAxis = 0.0f;
+	float InputYAxis = 0.0f;
+
+
 	bool IsPressed = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = WallRunning)

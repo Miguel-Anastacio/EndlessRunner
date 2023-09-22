@@ -43,7 +43,9 @@ protected:
 	UPROPERTY(EditAnywhere, Category = GameObjects) 
 		TArray<TSubclassOf<class AHorizontalPlatform>> SpawnableHorizontalPlatforms;
 	UPROPERTY(EditAnywhere, Category = GameObjects)
-		TArray<TSubclassOf<class AHorizontalPlatform>> SpawnableVerticalPlatforms;
+		TArray<TSubclassOf<class AHorizontalPlatform>> SpawnableLeftVerticalPlatforms;
+	UPROPERTY(EditAnywhere, Category = GameObjects)
+		TArray<TSubclassOf<class AHorizontalPlatform>> SpawnableRightVerticalPlatforms;
 
 	UPROPERTY(EditAnywhere, Category = GameBalance)  float SpawnCooldown = 2.0f;
 	float timer = 0.0f;

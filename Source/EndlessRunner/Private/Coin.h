@@ -18,4 +18,5 @@ protected:
 		float ScorePerCoin = 10.f;
 	void ReactToTrigger(AActor* OtherActor) override;
 
+
 };

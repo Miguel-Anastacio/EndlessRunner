@@ -60,13 +60,13 @@ ASpawnableObjects* AObjectSpawner::SpawnObject()
 		break;
 	case WALL_LEFT:
 		SpawnTransform.SetLocation(WallLeftTransform->GetComponentLocation());
-		index = FMath::RandRange(0, SpawnableVerticalPlatforms.Num() - 1);
-		temp = GetWorld()->SpawnActor<AHorizontalPlatform>(SpawnableVerticalPlatforms[1], SpawnTransform, SpawnParams);
+		index = FMath::RandRange(0, SpawnableLeftVerticalPlatforms.Num() - 1);
+		temp = GetWorld()->SpawnActor<AHorizontalPlatform>(SpawnableLeftVerticalPlatforms[index], SpawnTransform, SpawnParams);
 		break;
 	case WALL_RIGHT:
 		SpawnTransform.SetLocation(WallRightTransform->GetComponentLocation());
-		index = FMath::RandRange(0, SpawnableVerticalPlatforms.Num() - 1);
-		temp = GetWorld()->SpawnActor<AHorizontalPlatform>(SpawnableVerticalPlatforms[0], SpawnTransform, SpawnParams);
+		index = FMath::RandRange(0, SpawnableRightVerticalPlatforms.Num() - 1);
+		temp = GetWorld()->SpawnActor<AHorizontalPlatform>(SpawnableRightVerticalPlatforms[index], SpawnTransform, SpawnParams);
 		break;
 	default:
 		break;
