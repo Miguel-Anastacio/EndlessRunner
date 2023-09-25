@@ -57,6 +57,7 @@ protected:
 	// time(in seconds) that the player has to survive to reach max speed
 	UPROPERTY(EditAnywhere, Category = GameBalance)
 		float TimeToReachMaxSpeed = 30;
+
 	UPROPERTY(EditAnywhere, Category = Audio)
 		AAudioManager* AudioManager;
 
@@ -67,13 +68,12 @@ protected:
 	virtual void BeginPlay() override;
 
 	// Spawns a wall depending on what type was decided
-
 	ASpawnableObjects* SpawnObject();
 
 	// decides whic type of wall to spawn
 	void DecideWallToSpawn();
 
-	ASpawnableObjects* SpawnObjectOnLocation(const FVector location, TSubclassOf<class ASpawnableObjects> objectToSpawn) override;
+	ASpawnableObjects* SpawnObjectOnLocation(const FVector location, TSubclassOf<class ASpawnableObjects> objectToSpawn);
 
 public:	
 	// Sets default values for this actor's properties

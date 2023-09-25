@@ -9,6 +9,9 @@
 /**
  * 
  */
+
+class AEndlessRunnerCharacter;
+
 UCLASS()
 class ACoin : public ASpawnableObjects
 {
@@ -16,7 +19,18 @@ class ACoin : public ASpawnableObjects
 protected:
 	UPROPERTY(EditAnywhere, Category = Score)
 		float ScorePerCoin = 10.f;
+
+	UPROPERTY()
+		AEndlessRunnerCharacter* Player;
+	bool MagnetActive = false;
+	FVector Destination = FVector(0, 0, 0);
+
+	void BeginPlay() override;
 	void ReactToTrigger(AActor* OtherActor) override;
+	void Tick(float deltaTime) override;
+
+	UFUNCTION()
+	void ActivateMagnet(bool State);
 
 
 };

@@ -25,6 +25,7 @@ protected:
 	UPROPERTY(EditAnywhere)
 		bool HasTriggeredSpawn = false;
 
+
 	UPROPERTY(EditAnywhere, Category = Coin)
 		TSubclassOf<class ASpawnableObjects> Coin;
 	UPROPERTY(EditAnywhere, Category = Coin)
@@ -35,6 +36,8 @@ protected:
 		int32 MaxNumberOfCoinsPerPlatform = 5;
 	UPROPERTY(EditAnywhere, Category = Coin)
 		int32 MinNumberOfCoinsPerPlatform = 5;
+	UPROPERTY(EditAnywhere, Category = Coin)
+		int32 ClustersOfCoins = 2;
 
 	UPROPERTY(EditAnywhere, Category = Coin)
 		bool UseAdaptableCoinSpawner = false;
@@ -53,6 +56,10 @@ protected:
 	UPROPERTY(EditAnywhere, Category = Coin)
 		float PositionCoinsZAxis = 140.0f;
 
+	UPROPERTY(EditAnywhere, Category = PowerUp)
+		TArray <TSubclassOf<class ASpawnableObjects>> PowerUps;
+	UPROPERTY(EditAnywhere, Category = PowerUp)
+		float PowerUpChance = 100.0f;
 
 
 	UPROPERTY(EditAnywhere, Category = Obstacle)
@@ -75,14 +82,16 @@ protected:
 	TArray<ASpawnableObjects*> AllObjects;
 
 	void SpawnCoinsAlongPlatform();
-	ASpawnableObjects* SpawnObjectOnLocation(const FVector location, TSubclassOf<class ASpawnableObjects> objectToSpawn) override;
+	ASpawnableObjects* SpawnObjectOnLocation(const FVector location, TSubclassOf<class ASpawnableObjects> objectToSpawn) ;
 
 	void SpawnCoins();
-	FVector DecideCoinClusterSpawnLocation();
+	FVector RandomSpawnLocationInsidePlatform();
 	bool IsCoinOnPlatform(ASpawnableObjects* coin);
 	bool IsCoinOverlappingWithOtherObjects(ASpawnableObjects* coin);
-
 	FBox GetBoundingBoxOfActorInWorldSpace(ASpawnableObjects* object);
+
+
+	void SpawnPowerUp();
 
 public:
 	void BeginPlay() override;

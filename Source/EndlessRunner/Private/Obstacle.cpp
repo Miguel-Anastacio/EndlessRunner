@@ -5,6 +5,12 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "EndlessRunner/EndlessRunnerCharacter.h"
 
+AObstacle::AObstacle()
+{
+	NoCoinArea = CreateDefaultSubobject<UBoxComponent>("NoCoinArea");
+	NoCoinArea->SetupAttachment(ObjectMesh);
+}
+
 void AObstacle::ReactToTrigger(AActor* OtherActor)
 {
 	AEndlessRunnerCharacter* player = Cast<AEndlessRunnerCharacter>(OtherActor);

@@ -2,6 +2,8 @@
 
 
 #include "ObjectSpawner.h"
+#include "EndlessRunner/EndlessRunnerCharacter.h"
+#include "Kismet/GameplayStatics.h"
 
 // Sets default values
 AObjectSpawner::AObjectSpawner()
@@ -31,6 +33,13 @@ float AObjectSpawner::CalculateVelocityOfWall()
 	float velocity = ((aux - 0) / aux_range) * range + MinVelocity;
 
 	//GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Green, FString::Printf(TEXT("Wall Velocity %f"), velocity));
+	AEndlessRunnerCharacter* player = Cast<AEndlessRunnerCharacter>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0));
+	if (player)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Green, FString::Printf(TEXT("Game speed % f"), velocity/100));
+		player->SetGameSpeed(velocity / 100);
+	}
+
 
 	return velocity;
 }
@@ -130,6 +139,12 @@ void AObjectSpawner::SpawnWall()
 	object->SetVelocity(CalculateVelocityOfWall());
 	object->SetAudioManager(AudioManager);
 	AllObjects.Add(object);
+
+	//SpawnCoins();
+
+
+
+
 	PreviousWallSpawn = CurrentWallSpawn;
 }
 
@@ -147,4 +162,7 @@ void AObjectSpawner::Tick(float DeltaTime)
 	timer += DeltaTime;
 	
 }
+
+
+
 

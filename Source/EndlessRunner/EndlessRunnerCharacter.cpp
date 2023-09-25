@@ -53,6 +53,29 @@ AEndlessRunnerCharacter::AEndlessRunnerCharacter()
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
+
+	MagnetPowerUpMesh = CreateAbstractDefaultSubobject<UStaticMeshComponent>(TEXT("Magnet Mesh"));
+	MagnetPowerUpMesh->SetupAttachment(RootComponent);
+	MagnetPowerUpMesh->bHiddenInGame = true;
+
+}
+
+void AEndlessRunnerCharacter::InitMagnet(float duration, bool MagnetState)
+{
+	if (!MagnetState)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, TEXT("Disabled Magnet"));
+	}
+	else
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, TEXT("Enabled Magnet"));
+	}
+
+
+	MagnetPowerUpMesh->SetVisibility(MagnetState);
+	MagnetPowerUPDuration = duration;
+	IsMagnetActive = MagnetState;
+	MagnetTimer = 0.0f;
 }
 
 
@@ -88,6 +111,26 @@ void AEndlessRunnerCharacter::SetMappingContext(UInputMappingContext* NewMapping
 	}
 }
 
+UStaticMeshComponent* AEndlessRunnerCharacter::GetMagnetMesh()
+{
+	return MagnetPowerUpMesh;
+}
+
+void AEndlessRunnerCharacter::SetMagnetActive(bool state)
+{
+	IsMagnetActive = true;
+}
+
+bool AEndlessRunnerCharacter::GetIsMagnetActive()
+{
+	return IsMagnetActive;
+}
+
+void AEndlessRunnerCharacter::SetMagnetPowerUpDuration(float duration)
+{
+	MagnetPowerUPDuration = duration;
+}
+
 void AEndlessRunnerCharacter::BeginPlay()
 {
 	// Call the base class  
@@ -101,12 +144,12 @@ void AEndlessRunnerCharacter::BeginPlay()
 	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	PlayerController->bEnableMotionControls = true;
 
-
 }
 
 void AEndlessRunnerCharacter::Tick(float deltaTime)
 {
 	Super::Tick(deltaTime);
+	tick = deltaTime;
 	FVector currentLocation = GetActorLocation();
 
 	if (Alive)
@@ -118,6 +161,8 @@ void AEndlessRunnerCharacter::Tick(float deltaTime)
 		RotationTimer = FMath::Clamp(RotationTimer, 0, 1);
 		CurrentXRotation = FMath::Lerp(StartXRotation, TargetXRotation, RotationTimer);
 		SetActorRotation(FQuat4d(0.0f, CurrentXRotation, 180.0f, 1.0f));
+
+		//ClampYPositionWhenInDefaultState();
 	}
 
 
@@ -136,12 +181,22 @@ void AEndlessRunnerCharacter::Tick(float deltaTime)
 		}
 	}
 
-	TotalScore += deltaTime;
+	DistanceTravelled += deltaTime * GameSpeed;
+	TotalScore += deltaTime * GameSpeed;
 
 	if (currentLocation.Z < -100)
 	{
 		GameOverDelegate.Broadcast();
 		GetWorld()->GetFirstPlayerController()->SetPause(true);
+	}
+
+	if (IsMagnetActive)
+	{
+		MagnetTimer += deltaTime;
+		if (MagnetTimer > MagnetPowerUPDuration)
+		{
+			InitMagnet(0, false);
+		}
 	}
 
 }
@@ -209,9 +264,28 @@ void AEndlessRunnerCharacter::Move(const FInputActionValue& Value)
 		InputXAxis = MovementVector.X;
 		InputYAxis = MovementVector.Y;
 
-		// add movement 
-		//AddMovementInput(ForwardDirection, MovementVector.Y * AndroidGravityMultiplier);
-		AddMovementInput(RightDirection, MovementVector.X  * AndroidGravityMultiplier);
+		FMath::Clamp(MovementVector.X, -1, 1);
+
+		FVector temp = RightDirection * (MovementVector.X * AndroidGravityMultiplier);
+		if (GetActorLocation().Y + -GetCharacterMovement()->MaxWalkSpeed * MovementVector.X * tick > 200)
+		{
+			SetActorLocation(FVector(GetActorLocation().X, 200, GetActorLocation().Z));
+		}
+		else if (GetActorLocation().Y + -GetCharacterMovement()->MaxWalkSpeed * MovementVector.X * tick < -200)
+		{
+
+			SetActorLocation(FVector(GetActorLocation().X, -200, GetActorLocation().Z));
+		}
+		else
+		{
+			//AddMovementInput(RightDirection, MovementVector.X * AndroidGravityMultiplier);
+			if(MovementVector.X > 0)
+				GetCharacterMovement()->Velocity = FVector(0, -GetCharacterMovement()->MaxWalkSpeed, 0);
+			else
+				GetCharacterMovement()->Velocity = FVector(0, GetCharacterMovement()->MaxWalkSpeed, 0);
+		}
+
+
 
 		APlayerController* PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 		bool status = false;
@@ -392,22 +466,6 @@ void AEndlessRunnerCharacter::BeginWallRun()
 
 void AEndlessRunnerCharacter::UpdateWallRun()
 {
-	/*
-	if (!AreRequiredKeysDown())
-	{
-		EndWallRun();
-		return;
-	}
-	WallSideENUM previousSide = WallSide;
-	FindRunDirectionAndSide(Hit.ImpactNormal);
-	// make sure side is the same
-	// if it is different then end wall run
-	if (previousSide != WallSide)
-	{
-		EndWallRun();
-		return;
-	}*/
-
 	float maxSpeed = GetCharacterMovement()->GetMaxSpeed();
 	FVector playerVelocity = FVector(WallRunDirection.X * maxSpeed, WallRunDirection.Y * maxSpeed, GetCharacterMovement()->Velocity.Z * 0);
 

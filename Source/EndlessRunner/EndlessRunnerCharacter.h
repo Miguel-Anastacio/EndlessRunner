@@ -5,10 +5,11 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "InputActionValue.h"
+#include "SpawningInterface.h"
 #include "EndlessRunnerCharacter.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnGameOverSignature);
-
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMagnetActivated, bool, State);
 
 UENUM(BlueprintType)
 enum MovementState
@@ -27,7 +28,7 @@ enum WallSide
 
 
 UCLASS(config=Game)
-class AEndlessRunnerCharacter : public ACharacter
+class AEndlessRunnerCharacter : public ACharacter, public ISpawningInterface
 {
 	GENERATED_BODY()
 
@@ -62,9 +63,16 @@ class AEndlessRunnerCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	class UInputAction* SidewaysJumpAction;
 
-	
+	// PowerUps Meshes
+	UPROPERTY(EditAnywhere)
+	UStaticMeshComponent* MagnetPowerUpMesh;
+
+	bool IsMagnetActive = false;
+	float MagnetPowerUPDuration = 0.0f;
+	float MagnetTimer = 0.0f;
 
 protected:
+
 	// debug
 	float InputXAxis = 0.0f;
 	float InputYAxis = 0.0f;
@@ -89,6 +97,16 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = Score)
 	float TotalScore = 0.0f;
 
+	UPROPERTY(BlueprintReadOnly, Category = Score)
+	float DistanceTravelled = 0.0f;
+
+	// keeps track of the game speed used to calculate score based on disance travelled
+	float GameSpeed = 150.0f;
+
+	UPROPERTY(BlueprintReadOnly, Category = Score)
+	int CoinsCollected = 0;
+
+
 	UPROPERTY(BlueprintReadOnly, Category = State, meta = (AllowPrivateAccess = "true"))
 	TEnumAsByte<MovementState> PlayerMovementState = DEFAULT;
 
@@ -101,6 +119,9 @@ protected:
 	FVector Tilt = FVector(0, 0, 0);
 	FVector Gravity = FVector(0, 0, 0);
 	FVector RotationRate = FVector(0, 0, 0);
+
+	float tick = 0;
+
 
 	// multiplier of gravity phone input
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input)
@@ -137,6 +158,8 @@ protected:
 	void SidewaysJump(float& direction);
 
 	// check if it is a swipe
+	// is a swipe if the distance between the pressloaction and the release location on the x axis 
+	//is higher than the swipethreshold
 	void CheckSwipe(FVector2D PressLocation, FVector2D ReleaseLocation, float SwipeThreshold);
 
 	// wall run functions
@@ -162,26 +185,43 @@ protected:
 	// function bound to capsule component hit
 	UFUNCTION() void OnCompHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit);
 
+
+
 public:
 	AEndlessRunnerCharacter();
+
+	FOnMagnetActivated MagnetActivatedDelegate;
+
+	// function that inits all variables associated with the magnet powerup
+	void InitMagnet(float duration, bool MagnetState);
 
 	/** Returns CameraBoom subobject **/
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 
-	friend class AEndlessRunnerDebugHUD;
-
 
 	// getters and seters
+	void IncreaseCoinsCollected() {	CoinsCollected++; };
 	void IncreaseScore(float amount);
 
+	void SetGameSpeed(float gameSpeed) { GameSpeed = gameSpeed; };
+
 	MovementState GetMovementState() { return PlayerMovementState; };
-	void  SetMovementState(MovementState NewState);
+	void SetMovementState(MovementState NewState);
 	void SetMappingContext(UInputMappingContext* NewMappingContext);
 
 	void SetAlive(bool status) { Alive = status; };
 	bool GetAlive() { return Alive; };
+
+	UStaticMeshComponent* GetMagnetMesh(); 
+	void SetMagnetActive(bool state);
+	bool GetIsMagnetActive();
+	void SetMagnetPowerUpDuration(float duration);
+
+
+	friend class AEndlessRunnerDebugHUD;
+
 
 };
 

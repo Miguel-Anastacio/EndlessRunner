@@ -41,6 +41,7 @@ ASpawnableObjects* AHorizontalPlatform::SpawnObjectOnLocation(const FVector loca
 	{
 		ASpawnableObjects* object = GetWorld()->SpawnActor<ASpawnableObjects>(objectToSpawn, SpawnTransform, SpawnParams);
 		object->SetVelocity(Velocity);
+		object->SetAudioManager(AudioManager);
 		return object;
 	}
 	else
@@ -52,7 +53,9 @@ ASpawnableObjects* AHorizontalPlatform::SpawnObjectOnLocation(const FVector loca
 void AHorizontalPlatform::BeginPlay()
 {
 	Super::BeginPlay();
-	SetAudioManager(AudioManager);
+	//SetAudioManager(AudioManager);
+
+	PowerUpChance = FMath::RandRange(0, 15);
 
 	ObstacleSpawn.Empty();
 	ObstacleSpawn.Add(ObstacleSpawnA);
@@ -71,31 +74,26 @@ void AHorizontalPlatform::BeginPlay()
 
 	if (UseAdaptableCoinSpawner)
 	{
-		SpawnCoins();
-
+		//for (int i = 0; i < ClustersOfCoins; i++)
+		//{
+			SpawnCoins();
+		//}
 	}
 	else
 	{
 		SpawnCoinsAlongPlatform();
 	}
-	SetVelocity(Velocity);
-	SetAudioManager(AudioManager);
+
+	SpawnPowerUp();
+
+	//SetVelocity(Velocity);
+	//SetAudioManager(AudioManager);
 
 }
 
 void AHorizontalPlatform::ReactToTrigger(AActor* OtherActor)
 {
 
-	/*
-	if(GetOwner() == NULL)
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Red, TEXT("Owner is NULLLLLL"));
-	}
-	else
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Yellow, GetOwner()->GetName());
-	}
-	*/
 	if (GetOwner() == NULL)
 		return;
 
@@ -150,17 +148,15 @@ void AHorizontalPlatform::SpawnCoins()
 	{
 		return;
 	}
-
-
 	int coinCounter = 1;
-	FVector location = DecideCoinClusterSpawnLocation();
+	FVector location = RandomSpawnLocationInsidePlatform();
 	ASpawnableObjects* coin = SpawnObjectOnLocation(location, Coin);
+	SpawnOffset.Y = FMath::RandRange(-100, 100);
+
 	if (!IsCoinOverlappingWithOtherObjects(coin))
 	{
 		AllObjects.Add(coin);
-		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::White, TEXT("Coin is on platform"));
-
-		while (IsCoinOnPlatform(coin) && coinCounter < numberOfCoinsToSpawn)
+		while (IsCoinOnPlatform(coin) && coinCounter <= numberOfCoinsToSpawn)
 		{
 			location += SpawnOffset;
 			coin = SpawnObjectOnLocation(location, Coin);
@@ -172,15 +168,25 @@ void AHorizontalPlatform::SpawnCoins()
 			AllObjects.Add(coin);
 			coinCounter++;
 		}
-
+		
 		if (!IsCoinOnPlatform(coin))
 		{
 			coin->Destroy();
+			coinCounter--;
 		}
+
+		if (coinCounter == 0)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::White, TEXT("Recursive function coin first coin was outside of platform"));
+			SpawnCoins();
+		}
+
 
 	}
 	else
 	{
+		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::White, TEXT("Recursvie function"));
+		coinCounter--;
 		coin->Destroy();
 		SpawnCoins();
 	}
@@ -188,7 +194,7 @@ void AHorizontalPlatform::SpawnCoins()
 	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::White, FString::Printf(TEXT("Coins spawned %i"), coinCounter));
 }
 
-FVector AHorizontalPlatform::DecideCoinClusterSpawnLocation()
+FVector AHorizontalPlatform::RandomSpawnLocationInsidePlatform()
 {
 	FBox box = GetBoundingBoxOfActorInWorldSpace(this);
 	FVector minWorldBound = box.Min;
@@ -245,4 +251,34 @@ FBox AHorizontalPlatform::GetBoundingBoxOfActorInWorldSpace(ASpawnableObjects* o
 	box.Max = maxLocalBound * transform.GetScale3D() + object->GetActorLocation();
 
 	return box;
+}
+
+void AHorizontalPlatform::SpawnPowerUp()
+{
+	float roll = FMath::RandRange(0, 100);
+
+	if (PowerUpChance > roll)
+	{
+		FVector location = RandomSpawnLocationInsidePlatform();
+		if (PowerUps.Num() > 0)
+		{
+			int index = FMath::RandRange(0, PowerUps.Num() - 1);
+			
+			if (PowerUps[index])
+			{
+				ASpawnableObjects* powerUp = SpawnObjectOnLocation(location, PowerUps[index]);
+				while (IsCoinOverlappingWithOtherObjects(powerUp))
+				{
+					location = RandomSpawnLocationInsidePlatform();
+					powerUp->SetActorLocation(location);
+				}
+				GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::White, TEXT("Spawned PowerUp"));
+
+				AllObjects.Add(powerUp);
+			}
+		}
+
+
+	}
+
 }
