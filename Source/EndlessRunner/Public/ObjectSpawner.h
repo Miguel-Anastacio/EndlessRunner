@@ -6,6 +6,7 @@
 #include "HorizontalPlatform.h"
 #include "GameFramework/Actor.h"
 #include "SpawningInterface.h"
+#include "EndlessRunner/EndlessRunnerGameMode.h"
 #include "ObjectSpawner.generated.h"
 
 UENUM(BlueprintType)
@@ -61,6 +62,12 @@ protected:
 	UPROPERTY(EditAnywhere, Category = Audio)
 		AAudioManager* AudioManager;
 
+	UPROPERTY(EditAnywhere)
+		UBoxComponent* FailSafeTriggerBox = nullptr;
+	UFUNCTION()
+	void OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+
 	float CalculateVelocityOfWall();
 	//void StopGame();
 
@@ -86,5 +93,9 @@ public:
 	bool GetIsFirstWall() {
 		return IsFirstWall;
 	};
+
+	// just for a debug game mode where only horizontal walls are spawned 
+	UPROPERTY()
+	AEndlessRunnerGameMode* GameMode = NULL;
 
 };

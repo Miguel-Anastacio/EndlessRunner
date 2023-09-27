@@ -84,6 +84,16 @@ void AEndlessRunnerCharacter::IncreaseScore(float amount)
 	TotalScore += amount;
 }
 
+void AEndlessRunnerCharacter::SetGameSpeed(float gameSpeed)
+{
+	GameSpeed = gameSpeed;
+}
+
+void AEndlessRunnerCharacter::SetMaxWalkSpeed(float speed, float minSpeed)
+{
+	GetCharacterMovement()->MaxWalkSpeed = 550 * (speed / minSpeed);
+}
+
 void AEndlessRunnerCharacter::SetMovementState(MovementState newState)
 {
 	if (newState == DEFAULT)
@@ -155,14 +165,20 @@ void AEndlessRunnerCharacter::Tick(float deltaTime)
 	if (Alive)
 	{
 		currentLocation.X = 0.0f;
-		SetActorLocation(currentLocation);
 
 		RotationTimer += deltaTime * RotationSpeedMultiplier;
 		RotationTimer = FMath::Clamp(RotationTimer, 0, 1);
 		CurrentXRotation = FMath::Lerp(StartXRotation, TargetXRotation, RotationTimer);
 		SetActorRotation(FQuat4d(0.0f, CurrentXRotation, 180.0f, 1.0f));
 
-		//ClampYPositionWhenInDefaultState();
+		if (PlayerMovementState == DEFAULT)
+		{
+			if (currentLocation.Y > 200)
+				currentLocation.Y = 200;
+			else if (currentLocation.Y < -200)
+				currentLocation.Y = -200;
+		}
+		SetActorLocation(currentLocation);
 	}
 
 
@@ -198,6 +214,7 @@ void AEndlessRunnerCharacter::Tick(float deltaTime)
 			InitMagnet(0, false);
 		}
 	}
+
 
 }
 
@@ -251,44 +268,44 @@ void AEndlessRunnerCharacter::Move(const FInputActionValue& Value)
 
 	if (Controller != nullptr)
 	{
-		// find out which way is forward 
-		const FRotator Rotation = Controller->GetControlRotation();
-		const FRotator YawRotation(0, Rotation.Yaw, 0);
-
-		// get forward vector
-		const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-	
-		// get right vector 
-		const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
-
+		// debug 
 		InputXAxis = MovementVector.X;
 		InputYAxis = MovementVector.Y;
+		
+		float min = -1;
+		float max = 1;
+		float minLimit = -195;
+		float maxLimit = 195;
 
-		FMath::Clamp(MovementVector.X, -1, 1);
+		FMath::Clamp(MovementVector.X, min, max);
 
-		FVector temp = RightDirection * (MovementVector.X * AndroidGravityMultiplier);
-		if (GetActorLocation().Y + -GetCharacterMovement()->MaxWalkSpeed * MovementVector.X * tick > 200)
+		/*
+		if (GetActorLocation().Y + -GetCharacterMovement()->MaxWalkSpeed * MovementVector.X * tick > maxLimit)
 		{
-			SetActorLocation(FVector(GetActorLocation().X, 200, GetActorLocation().Z));
+			//SetActorLocation(FVector(GetActorLocation().X, maxLimit, GetActorLocation().Z));
 		}
-		else if (GetActorLocation().Y + -GetCharacterMovement()->MaxWalkSpeed * MovementVector.X * tick < -200)
+		else if (GetActorLocation().Y + -GetCharacterMovement()->MaxWalkSpeed * MovementVector.X * tick < minLimit)
 		{
 
-			SetActorLocation(FVector(GetActorLocation().X, -200, GetActorLocation().Z));
+			SetActorLocation(FVector(GetActorLocation().X, minLimit, GetActorLocation().Z));
 		}
 		else
-		{
-			//AddMovementInput(RightDirection, MovementVector.X * AndroidGravityMultiplier);
-			if(MovementVector.X > 0)
-				GetCharacterMovement()->Velocity = FVector(0, -GetCharacterMovement()->MaxWalkSpeed, 0);
-			else
-				GetCharacterMovement()->Velocity = FVector(0, GetCharacterMovement()->MaxWalkSpeed, 0);
-		}
+		{*/
+			if (abs(MovementVector.X) > TiltThreshold)
+			{
+				if (MovementVector.X > 0)
+				{
+					GetCharacterMovement()->Velocity = FVector(0, GetCharacterMovement()->MaxWalkSpeed * -MovementVector.X, 0);
+				}
+				else
+				{
+					GetCharacterMovement()->Velocity = FVector(0, GetCharacterMovement()->MaxWalkSpeed * -MovementVector.X, 0);
+				}
 
-
+			}
+		//}
 
 		APlayerController* PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-		bool status = false;
 		FVector dummy = FVector(0, 0, 0);
 		PlayerController->GetInputMotionState(Tilt, RotationRate, Gravity, dummy);
 
@@ -364,10 +381,12 @@ void AEndlessRunnerCharacter::SidewaysJump(float& direction)
 	{
 		//big jump
 		absDirection = BigJump;
+		absDirection = SmallJump;
 	}
 	else
 	{
 		absDirection = SmallJump;
+		//absDirection = BigJump;
 	}
 
 	if (direction < 0)
@@ -393,15 +412,29 @@ void AEndlessRunnerCharacter::SidewaysJump(float& direction)
 
 void AEndlessRunnerCharacter::CheckSwipe(FVector2D PressLocation, FVector2D ReleaseLocation, float SwipeThreshold)
 {
-	if (abs(ReleaseLocation.X - PressLocation.X) > SwipeThreshold)
+	// it it bigger on the x or the Y
+	float ySwipe = abs(ReleaseLocation.Y - PressLocation.Y);
+	float xSwipe = abs(ReleaseLocation.X - PressLocation.X);
+
+	if (ySwipe > xSwipe)
 	{
-		//float dir = UKismetMathLibrary::Clamp(ReleaseLocation.X - PressLocation.X, -1, 1);
-		float dir = ReleaseLocation.X - PressLocation.X;
-		SidewaysJump(dir);
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("Jump up %f"), ReleaseLocation.X - PressLocation.X));
+		float dir = -(ReleaseLocation.Y - PressLocation.Y);
+		Jump();
 	}
 	else
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("Not enough swipe %f"), ReleaseLocation.X - PressLocation.X));
+		if (abs(ReleaseLocation.X - PressLocation.X) > SwipeThreshold)
+		{
+			//float dir = UKismetMathLibrary::Clamp(ReleaseLocation.X - PressLocation.X, -1, 1);
+			float dir = ReleaseLocation.X - PressLocation.X;
+			SidewaysJump(dir);
+		}
+		else
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("Not enough swipe %f"), ReleaseLocation.X - PressLocation.X));
+		}
+
 	}
 }
 
@@ -514,7 +547,6 @@ bool AEndlessRunnerCharacter::ShootRayToWall(FHitResult& Hit)
 	// Here we add ourselves to the ignored list so we won't block the trace
 	FCollisionQueryParams TraceParams = FCollisionQueryParams(FName(TEXT("Trace")), true, this);
 
-
 	ECollisionChannel Channel = ECC_WorldStatic;
 
 	// shoot a ray from the position of the actor to where the wall should be
@@ -523,10 +555,8 @@ bool AEndlessRunnerCharacter::ShootRayToWall(FHitResult& Hit)
 
 void AEndlessRunnerCharacter::Landed(const FHitResult& Hit)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Blue, TEXT("Landed"));
 	Super::Landed(Hit);
-	SetMovementState(DEFAULT);
-
+	SetMovementState(DEFAULT);	
 }
 
 FVector AEndlessRunnerCharacter::FindLaunchVelocity(float dir)
@@ -537,42 +567,16 @@ FVector AEndlessRunnerCharacter::FindLaunchVelocity(float dir)
 	// jump away from the wall
 	if (PlayerMovementState == WALLRUNING)
 	{
-		FVector up;
-		switch (WallPositionRelativeToPlayer)
-		{
-		case LEFT:
-			up = FVector(0, 0, -1.0);
-			break;
-		case RIGHT:
-			up = FVector(0, 0, 1.0);
-			break;
-		default:
-			break;
-		}
-		// get a vector that points away from the wall by doing the cross product of the vector up
-		// with the direction that we are running along
-		//launchDirection = UKismetMathLibrary::Cross_VectorVector(WallRunDirection, up);
 		launchDirection = FVector(0, -dir, 0);
 		if(abs(dir) < 1)
 			launchDirection += FVector(0, 0, 0.8f);
 		else
 			launchDirection += FVector(0, 0, 0.85f);
-
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Blue, TEXT("Jumping While Wall Running"));
 	}
 	else
 	{
-		if (GetCharacterMovement()->IsFalling())
-		{
-			FVector rightVector = GetActorRightVector();
-			FVector forwardVector = GetActorForwardVector();
-
-
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Normal Jump"));
-		}
 		launchDirection = FVector(0, -dir, 0);
 		launchDirection += FVector(0, 0, 1.0f);
-
 	}
 	
 	return launchDirection * GetCharacterMovement()->JumpZVelocity;

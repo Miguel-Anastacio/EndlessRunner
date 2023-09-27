@@ -93,7 +93,6 @@ void AHorizontalPlatform::BeginPlay()
 
 void AHorizontalPlatform::ReactToTrigger(AActor* OtherActor)
 {
-
 	if (GetOwner() == NULL)
 		return;
 
@@ -139,6 +138,16 @@ void AHorizontalPlatform::SetAudioManager(AAudioManager* audioMgr)
 	{
 		it->SetAudioManager(audioMgr);
 	}
+}
+
+bool AHorizontalPlatform::GetHasTriggeredSpawn()
+{
+	return HasTriggeredSpawn;
+}
+
+void AHorizontalPlatform::SetHasTriggeredSpawn(bool state)
+{
+	HasTriggeredSpawn = state;
 }
 
 void AHorizontalPlatform::SpawnCoins()

@@ -99,4 +99,6 @@ public:
 	void SetVelocity(float speed) override;
 	void SetAudioManager(AAudioManager* audioMgr) override;
 
+	bool GetHasTriggeredSpawn();
+	void SetHasTriggeredSpawn(bool state);
 };

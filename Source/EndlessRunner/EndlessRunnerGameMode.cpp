@@ -16,3 +16,8 @@ AEndlessRunnerGameMode::AEndlessRunnerGameMode()
 
 	HUDClass = AEndlessRunnerDebugHUD::StaticClass();
 }
+
+void AEndlessRunnerGameMode::SetSpawnType()
+{
+	OnlyHorizontal = true;
+}

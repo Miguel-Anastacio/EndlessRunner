@@ -17,6 +17,26 @@ AObjectSpawner::AObjectSpawner()
 	WallLeftTransform = CreateDefaultSubobject<USceneComponent>("LeftWallSpawn");
 	WallLeftTransform->SetupAttachment(HorizontalTransform);
 
+	FailSafeTriggerBox = CreateDefaultSubobject<UBoxComponent>("TriggerBox");
+	FailSafeTriggerBox->SetupAttachment(HorizontalTransform);
+	FailSafeTriggerBox->SetCollisionProfileName(TEXT("Trigger"));
+	FailSafeTriggerBox->InitBoxExtent(FVector(100.0f, 50.0f, 100.0f));
+
+}
+
+void AObjectSpawner::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if (OtherActor)
+	{
+		AHorizontalPlatform* temp = Cast<AHorizontalPlatform>(OtherActor);
+		if (!temp)
+			return;
+		if (!temp->GetHasTriggeredSpawn())
+		{
+			SpawnWall();
+			temp->SetHasTriggeredSpawn(true);
+		}
+	}
 }
 
 float AObjectSpawner::CalculateVelocityOfWall()
@@ -38,6 +58,7 @@ float AObjectSpawner::CalculateVelocityOfWall()
 	{
 		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Green, FString::Printf(TEXT("Game speed % f"), velocity/100));
 		player->SetGameSpeed(velocity / 100);
+		player->SetMaxWalkSpeed(velocity, MinVelocity);
 	}
 
 
@@ -48,6 +69,11 @@ float AObjectSpawner::CalculateVelocityOfWall()
 void AObjectSpawner::BeginPlay()
 {
 	Super::BeginPlay();
+
+	GameMode = Cast<AEndlessRunnerGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
+	if (FailSafeTriggerBox)
+		FailSafeTriggerBox->OnComponentBeginOverlap.AddDynamic(this, &AObjectSpawner::OnOverlapBegin);
+
 }
 
 ASpawnableObjects* AObjectSpawner::SpawnObject()
@@ -60,27 +86,39 @@ ASpawnableObjects* AObjectSpawner::SpawnObject()
 
 	ASpawnableObjects* temp = nullptr;
 	int index = 0;
-	switch (CurrentWallSpawn)
+	if (!GameMode)
+		return NULL;
+
+	if (!GameMode->OnlyHorizontal)
 	{
-	case HORIZONTAL:
-		SpawnTransform.SetLocation(HorizontalTransform->GetComponentLocation());
-		index = FMath::RandRange(0, SpawnableHorizontalPlatforms.Num() -1);
-		temp = GetWorld()->SpawnActor<AHorizontalPlatform>(SpawnableHorizontalPlatforms[index], SpawnTransform, SpawnParams);
-		break;
-	case WALL_LEFT:
-		SpawnTransform.SetLocation(WallLeftTransform->GetComponentLocation());
-		index = FMath::RandRange(0, SpawnableLeftVerticalPlatforms.Num() - 1);
-		temp = GetWorld()->SpawnActor<AHorizontalPlatform>(SpawnableLeftVerticalPlatforms[index], SpawnTransform, SpawnParams);
-		break;
-	case WALL_RIGHT:
-		SpawnTransform.SetLocation(WallRightTransform->GetComponentLocation());
-		index = FMath::RandRange(0, SpawnableRightVerticalPlatforms.Num() - 1);
-		temp = GetWorld()->SpawnActor<AHorizontalPlatform>(SpawnableRightVerticalPlatforms[index], SpawnTransform, SpawnParams);
-		break;
-	default:
-		break;
+
+		switch (CurrentWallSpawn)
+		{
+		case HORIZONTAL:
+			SpawnTransform.SetLocation(HorizontalTransform->GetComponentLocation());
+			index = FMath::RandRange(0, SpawnableHorizontalPlatforms.Num() - 1);
+			temp = GetWorld()->SpawnActor<AHorizontalPlatform>(SpawnableHorizontalPlatforms[index], SpawnTransform, SpawnParams);
+			break;
+		case WALL_LEFT:
+			SpawnTransform.SetLocation(WallLeftTransform->GetComponentLocation());
+			index = FMath::RandRange(0, SpawnableLeftVerticalPlatforms.Num() - 1);
+			temp = GetWorld()->SpawnActor<AHorizontalPlatform>(SpawnableLeftVerticalPlatforms[index], SpawnTransform, SpawnParams);
+			break;
+		case WALL_RIGHT:
+			SpawnTransform.SetLocation(WallRightTransform->GetComponentLocation());
+			index = FMath::RandRange(0, SpawnableRightVerticalPlatforms.Num() - 1);
+			temp = GetWorld()->SpawnActor<AHorizontalPlatform>(SpawnableRightVerticalPlatforms[index], SpawnTransform, SpawnParams);
+			break;
+		default:
+			break;
+		}
 	}
-	
+	else
+	{
+		SpawnTransform.SetLocation(HorizontalTransform->GetComponentLocation());
+		index = FMath::RandRange(0, SpawnableHorizontalPlatforms.Num() - 1);
+		temp = GetWorld()->SpawnActor<AHorizontalPlatform>(SpawnableHorizontalPlatforms[index], SpawnTransform, SpawnParams);
+	}
 	
 	return temp;
 }
@@ -97,13 +135,13 @@ void AObjectSpawner::DecideWallToSpawn()
 	case WALL_LEFT:
 		// if the player is on a left wall
 		// spawn left vertical wall or horizontal 0 or 1 in the enum WallSpawn
-		CurrentWallSpawn = StaticCast<WallSpawn>(FMath::RandRange(0, 1));
+		CurrentWallSpawn = StaticCast<WallSpawn>(FMath::RandRange(0, 0));
 		break;
 	case WALL_RIGHT:
 
 		// if the player is on a right wall
 		// spawn right vertical wall or horizontal 0 or 2 in the enum WallSpawn
-		CurrentWallSpawn = StaticCast<WallSpawn>(FMath::RandRange(0, 2));
+		CurrentWallSpawn = StaticCast<WallSpawn>(FMath::RandRange(0, 0));
 		while (CurrentWallSpawn == PreviousWallSpawn)
 		{
 			CurrentWallSpawn = StaticCast<WallSpawn>(FMath::RandRange(0, 2));
@@ -155,7 +193,7 @@ void AObjectSpawner::Tick(float DeltaTime)
 	
 	if (IsFirstWall && timer > SpawnCooldown)
 	{
-		SpawnWall();
+		//SpawnWall();
 		//timer = 0.0f;
 		IsFirstWall = false;
 	}

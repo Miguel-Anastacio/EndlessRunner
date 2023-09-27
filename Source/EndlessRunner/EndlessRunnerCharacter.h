@@ -120,12 +120,15 @@ protected:
 	FVector Gravity = FVector(0, 0, 0);
 	FVector RotationRate = FVector(0, 0, 0);
 
+	// stores the previous delta time
+	// used in the move function to prevent input when it exceeds the boundaries 
+	// only applied when the player is on an horziontal platform
 	float tick = 0;
 
 
-	// multiplier of gravity phone input
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input)
-		float AndroidGravityMultiplier = 2.0f;;
+	//only capture tilt input if it is above this value
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Input)
+		float TiltThreshold = 0.5f;;
 
 	/** Called for movement input */
 	void Move(const FInputActionValue& Value);
@@ -200,12 +203,16 @@ public:
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 
+	FVector RelativeTransform;
+	FRotator Rotation;
+
 
 	// getters and seters
 	void IncreaseCoinsCollected() {	CoinsCollected++; };
 	void IncreaseScore(float amount);
 
-	void SetGameSpeed(float gameSpeed) { GameSpeed = gameSpeed; };
+	void SetGameSpeed(float gameSpeed);
+	void SetMaxWalkSpeed(float speed, float minSpeed);
 
 	MovementState GetMovementState() { return PlayerMovementState; };
 	void SetMovementState(MovementState NewState);

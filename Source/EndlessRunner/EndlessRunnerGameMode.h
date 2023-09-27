@@ -13,6 +13,12 @@ class AEndlessRunnerGameMode : public AGameModeBase
 
 public:
 	AEndlessRunnerGameMode();
+
+	UFUNCTION(BlueprintCallable)
+	void SetSpawnType();
+
+	UPROPERTY(EditAnywhere, Category = GameType)
+		bool OnlyHorizontal = false;
 };
 
 
